@@ -111,9 +111,17 @@ allprojects {
     }
 
     processResources {
-        filesMatching(['**/*.json', '**/*.yml']) {
-            filter ReplaceTokens as Class, beginToken: '${', endToken: '}',
-                    tokens: rootProject.ext.properties
+        filesMatching(["**/*.json", "**/*.yml"]) {
+            filter([
+                    beginToken: '${',
+                    endToken: '}',
+                    tokens: [
+                            version: rootProject.version.toString(),
+                            description: rootProject.description.toString(),
+                            fabric_loader_version: fabric_loader_version.toString(),
+                            fabric_minecraft_version: fabric_minecraft_version.toString()
+                    ]
+            ], ReplaceTokens)
         }
     }
 }
