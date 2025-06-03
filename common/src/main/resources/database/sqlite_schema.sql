@@ -96,3 +96,41 @@ CREATE TABLE IF NOT EXISTS `%warps_table%`
     PRIMARY KEY (`uuid`),
     FOREIGN KEY (`saved_position_id`) REFERENCES `%saved_positions_table%` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
 );
+
+/* Create the server links table if it does not exist */
+CREATE TABLE IF NOT EXISTS `%server_links_table%`
+(
+    `id`            integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+    `master_server` varchar(255) NOT NULL,
+    `slave_server`  varchar(255) NOT NULL,
+
+    UNIQUE (`master_server`, `slave_server`)
+);
+
+/* Create the warp permissions table if it does not exist */
+CREATE TABLE IF NOT EXISTS `%warp_permissions_table%`
+(
+    `id`         integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+    `warp_name`  varchar(255) NOT NULL UNIQUE,
+    `permission` varchar(255) NOT NULL
+);
+
+/* Create the server permissions table if it does not exist */
+CREATE TABLE IF NOT EXISTS `%server_permissions_table%`
+(
+    `id`          integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+    `server_name` varchar(255) NOT NULL UNIQUE,
+    `permission`  varchar(255) NOT NULL
+);
+
+/* Create the user preferences table if it does not exist */
+CREATE TABLE IF NOT EXISTS `%user_preferences_table%`
+(
+    `id`               integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+    `user_uuid`        char(36)     NOT NULL,
+    `master_server`    varchar(255) NOT NULL,
+    `preferred_server` varchar(255) NOT NULL,
+    
+    UNIQUE (`user_uuid`, `master_server`),
+    FOREIGN KEY (`user_uuid`) REFERENCES `%players_table%` (`uuid`) ON DELETE CASCADE ON UPDATE NO ACTION
+);

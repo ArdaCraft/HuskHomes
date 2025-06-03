@@ -116,3 +116,55 @@ CREATE TABLE IF NOT EXISTS `%warps_table%`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci;
+
+-- Create the server links table if it does not exist
+CREATE TABLE IF NOT EXISTS `%server_links_table%`
+(
+    `id`            INTEGER      NOT NULL AUTO_INCREMENT,
+    `master_server` VARCHAR(255) NOT NULL,
+    `slave_server`  VARCHAR(255) NOT NULL,
+
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_link` (`master_server`, `slave_server`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci;
+
+-- Create the warp permissions table if it does not exist
+CREATE TABLE IF NOT EXISTS `%warp_permissions_table%`
+(
+    `id`         INTEGER      NOT NULL AUTO_INCREMENT,
+    `warp_name`  VARCHAR(255) NOT NULL UNIQUE,
+    `permission` VARCHAR(255) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci;
+
+-- Create the server permissions table if it does not exist
+CREATE TABLE IF NOT EXISTS `%server_permissions_table%`
+(
+    `id`          INTEGER      NOT NULL AUTO_INCREMENT,
+    `server_name` VARCHAR(255) NOT NULL UNIQUE,
+    `permission`  VARCHAR(255) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci;
+
+-- Create the user preferences table if it does not exist
+CREATE TABLE IF NOT EXISTS `%user_preferences_table%`
+(
+    `id`               INTEGER      NOT NULL AUTO_INCREMENT,
+    `user_uuid`        CHAR(36)     NOT NULL,
+    `master_server`    VARCHAR(255) NOT NULL,
+    `preferred_server` VARCHAR(255) NOT NULL,
+
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_preference` (`user_uuid`, `master_server`),
+    FOREIGN KEY (`user_uuid`) REFERENCES `%players_table%` (`uuid`) ON DELETE CASCADE ON UPDATE NO ACTION
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci;

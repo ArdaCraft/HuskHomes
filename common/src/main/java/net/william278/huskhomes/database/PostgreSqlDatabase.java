@@ -1260,8 +1260,253 @@ public class PostgreSqlDatabase extends Database {
         } catch (SQLException e) {
             plugin.log(Level.SEVERE, "Failed to delete warps in the world " + worldName + " on the server "
                     + serverName + " from the database", e);
+        }        return 0;
+    }
+
+    // Server linking methods implementation
+
+    @Override
+    public List<String> getSlaveServers(@NotNull String masterServer) {
+        final List<String> slaves = new ArrayList<>();
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    SELECT "slave_server" FROM "%server_links_table%" WHERE "master_server" = ?;"""))) {
+                statement.setString(1, masterServer);
+                
+                final ResultSet resultSet = statement.executeQuery();
+                while (resultSet.next()) {
+                    slaves.add(resultSet.getString("slave_server"));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to get slave servers for master " + masterServer, e);
         }
-        return 0;
+        return slaves;
+    }
+
+    @Override
+    public List<String> getAllMasterServers() {
+        final List<String> masters = new ArrayList<>();
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    SELECT DISTINCT "master_server" FROM "%server_links_table%";"""))) {
+
+                final ResultSet resultSet = statement.executeQuery();
+                while (resultSet.next()) {
+                    masters.add(resultSet.getString("master_server"));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to get all master servers", e);
+        }
+        return masters;
+    }
+
+    @Override
+    public Optional<String> getMasterServer(@NotNull String serverName) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    SELECT "master_server" FROM "%server_links_table%" WHERE "slave_server" = ?;"""))) {
+                statement.setString(1, serverName);
+                
+                final ResultSet resultSet = statement.executeQuery();
+                if (resultSet.next()) {
+                    return Optional.of(resultSet.getString("master_server"));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to get master server for " + serverName, e);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public void addServerLink(@NotNull String masterServer, @NotNull String slaveServer) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    INSERT INTO "%server_links_table%" ("master_server", "slave_server") VALUES (?, ?)
+                    ON CONFLICT ("master_server", "slave_server") DO NOTHING;"""))) {
+                statement.setString(1, masterServer);
+                statement.setString(2, slaveServer);
+                statement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to add server link: " + masterServer + " -> " + slaveServer, e);
+        }
+    }
+
+    @Override
+    public void removeServerLink(@NotNull String masterServer, @NotNull String slaveServer) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    DELETE FROM "%server_links_table%" WHERE "master_server" = ? AND "slave_server" = ?;"""))) {
+                statement.setString(1, masterServer);
+                statement.setString(2, slaveServer);
+                statement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to remove server link: " + masterServer + " -> " + slaveServer, e);
+        }
+    }
+
+    @Override
+    public void removeAllServerLinks(@NotNull String masterServer) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    DELETE FROM "%server_links_table%" WHERE "master_server" = ?;"""))) {
+                statement.setString(1, masterServer);
+                statement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to remove all server links for master " + masterServer, e);
+        }
+    }
+
+    // Warp permission methods implementation
+
+    @Override
+    public Optional<String> getWarpPermission(@NotNull String warpName) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    SELECT "permission" FROM "%warp_permissions_table%" WHERE "warp_name" = ?;"""))) {
+                statement.setString(1, warpName);
+                
+                final ResultSet resultSet = statement.executeQuery();
+                if (resultSet.next()) {
+                    return Optional.of(resultSet.getString("permission"));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to get warp permission for " + warpName, e);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public void setWarpPermission(@NotNull String warpName, @NotNull String permission) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    INSERT INTO "%warp_permissions_table%" ("warp_name", "permission") VALUES (?, ?)
+                    ON CONFLICT ("warp_name") DO UPDATE SET "permission" = EXCLUDED."permission";"""))) {
+                statement.setString(1, warpName);
+                statement.setString(2, permission);
+                statement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to set warp permission for " + warpName, e);
+        }
+    }
+
+    @Override
+    public void removeWarpPermission(@NotNull String warpName) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    DELETE FROM "%warp_permissions_table%" WHERE "warp_name" = ?;"""))) {
+                statement.setString(1, warpName);
+                statement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to remove warp permission for " + warpName, e);
+        }
+    }
+
+    // Server permission methods implementation
+
+    @Override
+    public Optional<String> getServerPermission(@NotNull String serverName) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    SELECT "permission" FROM "%server_permissions_table%" WHERE "server_name" = ?;"""))) {
+                statement.setString(1, serverName);
+                
+                final ResultSet resultSet = statement.executeQuery();
+                if (resultSet.next()) {
+                    return Optional.of(resultSet.getString("permission"));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to get server permission for " + serverName, e);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public void setServerPermission(@NotNull String serverName, @NotNull String permission) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    INSERT INTO "%server_permissions_table%" ("server_name", "permission") VALUES (?, ?)
+                    ON CONFLICT ("server_name") DO UPDATE SET "permission" = EXCLUDED."permission";"""))) {
+                statement.setString(1, serverName);
+                statement.setString(2, permission);
+                statement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to set server permission for " + serverName, e);
+        }
+    }
+
+    @Override
+    public void removeServerPermission(@NotNull String serverName) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    DELETE FROM "%server_permissions_table%" WHERE "server_name" = ?;"""))) {
+                statement.setString(1, serverName);
+                statement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to remove server permission for " + serverName, e);
+        }
+    }
+
+    // User preference methods implementation
+
+    @Override
+    public Optional<String> getUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    SELECT "preferred_server" FROM "%user_preferences_table%" WHERE "user_uuid" = ? AND "master_server" = ?;"""))) {
+                statement.setString(1, userId.toString());
+                statement.setString(2, masterServer);
+                
+                final ResultSet resultSet = statement.executeQuery();
+                if (resultSet.next()) {
+                    return Optional.of(resultSet.getString("preferred_server"));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to get preferred server for user " + userId + " and master " + masterServer, e);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public void setUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer, @NotNull String preferredServer) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    INSERT INTO "%user_preferences_table%" ("user_uuid", "master_server", "preferred_server") VALUES (?, ?, ?)
+                    ON CONFLICT ("user_uuid", "master_server") DO UPDATE SET "preferred_server" = EXCLUDED."preferred_server";"""))) {
+                statement.setString(1, userId.toString());
+                statement.setString(2, masterServer);
+                statement.setString(3, preferredServer);
+                statement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to set preferred server for user " + userId, e);
+        }
+    }
+
+    @Override
+    public void removeUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer) {
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    DELETE FROM "%user_preferences_table%" WHERE "user_uuid" = ? AND "master_server" = ?;"""))) {
+                statement.setString(1, userId.toString());
+                statement.setString(2, masterServer);
+                statement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to remove preferred server for user " + userId + " and master " + masterServer, e);
+        }
     }
 
     @Override

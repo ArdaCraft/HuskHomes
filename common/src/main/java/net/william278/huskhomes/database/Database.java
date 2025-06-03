@@ -90,7 +90,15 @@ public abstract class Database {
                 .replaceAll("%homes_table%", settings
                         .getTableName(Table.HOME_DATA))
                 .replaceAll("%warps_table%", settings
-                        .getTableName(Table.WARP_DATA));
+                        .getTableName(Table.WARP_DATA))
+                .replaceAll("%server_links_table%", settings
+                        .getTableName(Table.SERVER_LINKS))
+                .replaceAll("%warp_permissions_table%", settings
+                        .getTableName(Table.WARP_PERMISSIONS))
+                .replaceAll("%server_permissions_table%", settings
+                        .getTableName(Table.SERVER_PERMISSIONS))
+                .replaceAll("%user_preferences_table%", settings
+                        .getTableName(Table.USER_PREFERENCES));
     }
 
     /**
@@ -467,9 +475,7 @@ public abstract class Database {
      *
      * @return An integer; the number of deleted warps
      */
-    public abstract int deleteAllWarps();
-
-    /**
+    public abstract int deleteAllWarps();    /**
      * Deletes all {@link Warp}s on a specific world and server (given by name) from the warp table on the database.
      *
      * @param worldName  The name of the world to delete warps from
@@ -477,6 +483,132 @@ public abstract class Database {
      * @return An integer; the number of deleted warps
      */
     public abstract int deleteAllWarps(@NotNull String worldName, @NotNull String serverName);
+
+    // Server linking methods
+
+    /**
+     * Get a list of slave servers for a given master server.
+     *
+     * @param masterServer The name of the master server
+     * @return A list of slave server names
+     */
+    public abstract List<String> getSlaveServers(@NotNull String masterServer);
+
+    /**
+     * Get a list of all master servers.
+     *
+     * @return A list of all master server names
+     */
+    public abstract List<String> getAllMasterServers();
+
+    /**
+     * Get the master server for a given server name.
+     *
+     * @param serverName The name of the server
+     * @return An optional containing the master server name if one exists
+     */
+    public abstract Optional<String> getMasterServer(@NotNull String serverName);
+
+    /**
+     * Add a server link between a master and slave server.
+     *
+     * @param masterServer The name of the master server
+     * @param slaveServer  The name of the slave server
+     */
+    public abstract void addServerLink(@NotNull String masterServer, @NotNull String slaveServer);
+
+    /**
+     * Remove a server link between a master and slave server.
+     *
+     * @param masterServer The name of the master server
+     * @param slaveServer  The name of the slave server
+     */
+    public abstract void removeServerLink(@NotNull String masterServer, @NotNull String slaveServer);
+
+    /**
+     * Remove all server links for a given master server.
+     *
+     * @param masterServer The name of the master server
+     */
+    public abstract void removeAllServerLinks(@NotNull String masterServer);
+
+    // Warp permission methods
+
+    /**
+     * Get the required permission for a specific warp.
+     *
+     * @param warpName The name of the warp
+     * @return An optional containing the required permission if one exists
+     */
+    public abstract Optional<String> getWarpPermission(@NotNull String warpName);
+
+    /**
+     * Set the required permission for a specific warp.
+     *
+     * @param warpName   The name of the warp
+     * @param permission The required permission
+     */
+    public abstract void setWarpPermission(@NotNull String warpName, @NotNull String permission);
+
+    /**
+     * Remove the permission requirement for a specific warp.
+     *
+     * @param warpName The name of the warp
+     */
+    public abstract void removeWarpPermission(@NotNull String warpName);
+
+    // Server permission methods
+
+    /**
+     * Get the required permission for a specific server.
+     *
+     * @param serverName The name of the server
+     * @return An optional containing the required permission if one exists
+     */
+    public abstract Optional<String> getServerPermission(@NotNull String serverName);
+
+    /**
+     * Set the required permission for a specific server.
+     *
+     * @param serverName The name of the server
+     * @param permission The required permission
+     */
+    public abstract void setServerPermission(@NotNull String serverName, @NotNull String permission);
+
+    /**
+     * Remove the permission requirement for a specific server.
+     *
+     * @param serverName The name of the server
+     */
+    public abstract void removeServerPermission(@NotNull String serverName);
+
+    // User preference methods
+
+    /**
+     * Get a user's preferred server for a given master server.
+     *
+     * @param userId       The user's UUID
+     * @param masterServer The name of the master server
+     * @return An optional containing the preferred server if one exists
+     */
+    public abstract Optional<String> getUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer);
+
+    /**
+     * Set a user's preferred server for a given master server.
+     *
+     * @param userId          The user's UUID
+     * @param masterServer    The name of the master server
+     * @param preferredServer The preferred server
+     */
+    public abstract void setUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer, @NotNull String preferredServer);
+
+    /**
+     * Remove a user's preferred server for a given master server.
+     *
+     * @param userId       The user's UUID
+     * @param masterServer The name of the master server
+     */
+    public abstract void removeUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer);
 
     /**
      * Close any remaining connection to the database source.
@@ -512,7 +644,11 @@ public abstract class Database {
         SAVED_POSITION_DATA("huskhomes_saved_positions"),
         HOME_DATA("huskhomes_homes"),
         WARP_DATA("huskhomes_warps"),
-        TELEPORT_DATA("huskhomes_teleports");
+        TELEPORT_DATA("huskhomes_teleports"),
+        SERVER_LINKS("huskhomes_server_links"),
+        WARP_PERMISSIONS("huskhomes_warp_permissions"),
+        SERVER_PERMISSIONS("huskhomes_server_permissions"),
+        USER_PREFERENCES("huskhomes_user_preferences");
 
         private final String defaultName;
 

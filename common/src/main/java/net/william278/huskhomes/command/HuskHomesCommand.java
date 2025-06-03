@@ -41,14 +41,24 @@ import java.util.stream.IntStream;
 
 public class HuskHomesCommand extends Command implements TabProvider {
 
-    private static final Map<String, Boolean> SUB_COMMANDS = Map.of(
-            "about", false,
-            "help", false,
-            "reload", true,
-            "import", true,
-            "delete", true,
-            "update", true
-    );
+    private static final Map<String, Boolean> SUB_COMMANDS;
+    static {
+        Map<String, Boolean> commands = new HashMap<>();
+        commands.put("about", false);
+        commands.put("help", false);
+        commands.put("reload", true);
+        commands.put("import", true);
+        commands.put("delete", true);
+        commands.put("update", true);
+        commands.put("setpreferredserver", true);
+        commands.put("linkserver", true);
+        commands.put("unlinkserver", true);
+        commands.put("lockwarp", true);
+        commands.put("unlockwarp", true);
+        commands.put("lockserver", true);
+        commands.put("unlockserver", true);
+        SUB_COMMANDS = Collections.unmodifiableMap(commands);
+    }
 
     private boolean importersLoaded = false;
     private final UpdateChecker updateChecker;
@@ -159,6 +169,13 @@ public class HuskHomesCommand extends Command implements TabProvider {
                 plugin.getLocales().getLocale("update_available", checked.getLatestVersion().toString(),
                         plugin.getVersion().toString()).ifPresent(executor::sendMessage);
             });
+            case "setpreferredserver" -> this.setPreferredServer(executor, removeFirstArg(args));
+            case "linkserver" -> this.linkServer(executor, removeFirstArg(args));
+            case "unlinkserver" -> this.unlinkServer(executor, removeFirstArg(args));
+            case "lockwarp" -> this.lockWarp(executor, removeFirstArg(args));
+            case "unlockwarp" -> this.unlockWarp(executor, removeFirstArg(args));
+            case "lockserver" -> this.lockServer(executor, removeFirstArg(args));
+            case "unlockserver" -> this.unlockServer(executor, removeFirstArg(args));
             default -> plugin.getLocales().getLocale("error_invalid_syntax", getUsage())
                     .ifPresent(executor::sendMessage);
         }
@@ -328,6 +345,286 @@ public class HuskHomesCommand extends Command implements TabProvider {
                         .setHeaderFormat(plugin.getLocales().getRawLocale("importer_list_title").orElse(""))
                         .setItemSeparator("\n").setCommand("/huskhomes:huskhomes import list")
                         .build());
+    }    // Set preferred server for a user for a specific master server
+    private void setPreferredServer(@NotNull CommandUser executor, @NotNull String[] args) {
+        if (args.length < 2) {
+            plugin.getLocales().getLocale("error_invalid_syntax",
+                            "/" + getName() + " setpreferredserver <master-server> <preferred-server> [player]")
+                    .ifPresent(executor::sendMessage);
+            return;
+        }
+
+        final String masterServer = args[0];
+        final String preferredServer = args[1];
+        final String targetPlayer = args.length > 2 ? args[2] : null;
+
+        // If no target player specified, use executor (must be a player)
+        if (targetPlayer == null && !(executor instanceof User)) {
+            plugin.getLocales().getLocale("error_console_command")
+                    .ifPresent(executor::sendMessage);
+            return;
+        }
+
+        plugin.runAsync(() -> {
+            try {
+                final User targetUser;
+                if (targetPlayer != null) {
+                    // Admin setting preference for another player
+                    Optional<SavedUser> savedUser;
+                    try {
+                        savedUser = plugin.getDatabase().getUserData(UUID.fromString(targetPlayer));
+                    } catch (IllegalArgumentException e) {
+                        savedUser = plugin.getDatabase().getUserDataByName(targetPlayer);
+                    }
+
+                    if (savedUser.isEmpty()) {
+                        plugin.getLocales().getLocale("error_player_not_found", targetPlayer)
+                                .ifPresent(executor::sendMessage);
+                        return;
+                    }
+                    targetUser = savedUser.get().getUser();
+                } else {
+                    // Player setting their own preference
+                    targetUser = (User) executor;
+                }                // Check if the master server has linked servers
+                final var serverLinks = plugin.getDatabase().getSlaveServers(masterServer);
+                serverLinks.add(masterServer); // Include master server itself
+                if (!serverLinks.contains(preferredServer)) {
+                    plugin.getLocales().getLocale("error_server_not_linked", preferredServer)
+                            .ifPresent(executor::sendMessage);
+                    return;
+                }
+
+                // Set the preference in database
+                plugin.getDatabase().setUserPreferredServer(targetUser.getUuid(), masterServer, preferredServer);
+                plugin.getLocales().getLocale("preferred_server_set", targetUser.getUsername(), masterServer, preferredServer)
+                        .ifPresent(executor::sendMessage);
+
+            } catch (Exception e) {
+                plugin.log(Level.SEVERE, "Error setting preferred server", e);
+                plugin.getLocales().getLocale("error_generic")
+                        .ifPresent(executor::sendMessage);
+            }        });
+    }
+
+    // Lock a specific warp behind a permission
+    private void lockWarp(@NotNull CommandUser executor, @NotNull String[] args) {
+        if (args.length < 2) {
+            plugin.getLocales().getLocale("error_invalid_syntax",
+                            "/" + getName() + " lockwarp <warp> <permission>")
+                    .ifPresent(executor::sendMessage);
+            return;
+        }
+
+        final String warpName = args[0];
+        final String permission = args[1];
+
+        plugin.runAsync(() -> {
+            try {
+                // Check if warp exists
+                final var warps = plugin.getManager().warps().getWarps();
+                if (!warps.contains(warpName)) {
+                    plugin.getLocales().getLocale("error_warp_not_found", warpName)
+                            .ifPresent(executor::sendMessage);
+                    return;
+                }
+
+                // Set the warp permission in database
+                plugin.getDatabase().setWarpPermission(warpName, permission);
+
+                plugin.getLocales().getLocale("warp_locked", warpName, permission)
+                        .ifPresent(executor::sendMessage);
+
+            } catch (Exception e) {
+                plugin.log(Level.SEVERE, "Error setting warp permission", e);
+                plugin.getLocales().getLocale("error_generic")
+                        .ifPresent(executor::sendMessage);
+            }        });
+    }
+
+    // Lock an entire server's warps behind a permission
+    private void lockServer(@NotNull CommandUser executor, @NotNull String[] args) {
+        if (args.length < 2) {
+            plugin.getLocales().getLocale("error_invalid_syntax",
+                            "/" + getName() + " lockserver <server> <permission>")
+                    .ifPresent(executor::sendMessage);
+            return;
+        }
+
+        final String serverName = args[0];
+        final String permission = args[1];
+
+        plugin.runAsync(() -> {
+            try {
+                // Set the server permission in database
+                plugin.getDatabase().setServerPermission(serverName, permission);
+
+                plugin.getLocales().getLocale("server_locked", serverName, permission)
+                        .ifPresent(executor::sendMessage);
+
+            } catch (Exception e) {
+                plugin.log(Level.SEVERE, "Error setting server permission", e);
+                plugin.getLocales().getLocale("error_generic")
+                        .ifPresent(executor::sendMessage);
+            }
+        });
+    }
+
+    // Link a slave server to a master server
+    private void linkServer(@NotNull CommandUser executor, @NotNull String[] args) {
+        if (args.length < 2) {
+            plugin.getLocales().getLocale("error_invalid_syntax",
+                            "/" + getName() + " linkserver <master-server> <slave-server>")
+                    .ifPresent(executor::sendMessage);
+            return;
+        }
+
+        final String masterServer = args[0];
+        final String slaveServer = args[1];
+
+        plugin.runAsync(() -> {
+            try {
+                // Add the server link in database
+                plugin.getDatabase().addServerLink(masterServer, slaveServer);
+
+                plugin.getLocales().getLocale("server_linked", slaveServer, masterServer)
+                        .ifPresent(executor::sendMessage);
+
+            } catch (Exception e) {
+                plugin.log(Level.SEVERE, "Error linking servers", e);
+                plugin.getLocales().getLocale("error_generic")
+                        .ifPresent(executor::sendMessage);
+            }
+        });
+    }
+
+    // Unlink a slave server from a master server
+    private void unlinkServer(@NotNull CommandUser executor, @NotNull String[] args) {
+        if (args.length < 2) {
+            plugin.getLocales().getLocale("error_invalid_syntax",
+                            "/" + getName() + " unlinkserver <master-server> <slave-server>")
+                    .ifPresent(executor::sendMessage);
+            return;
+        }
+
+        final String masterServer = args[0];
+        final String slaveServer = args[1];
+
+        plugin.runAsync(() -> {
+            try {
+                // Remove the server link in database
+                plugin.getDatabase().removeServerLink(masterServer, slaveServer);
+
+                plugin.getLocales().getLocale("server_unlinked", slaveServer, masterServer)
+                        .ifPresent(executor::sendMessage);
+
+            } catch (Exception e) {
+                plugin.log(Level.SEVERE, "Error unlinking servers", e);
+                plugin.getLocales().getLocale("error_generic")
+                        .ifPresent(executor::sendMessage);
+            }
+        });
+    }
+
+    // Remove a permission requirement for a specific warp (unlockwarp)
+    private void unlockWarp(@NotNull CommandUser executor, @NotNull String[] args) {
+        if (args.length < 1) {
+            plugin.getLocales().getLocale("error_invalid_syntax",
+                            "/" + getName() + " unlockwarp <warp>")
+                    .ifPresent(executor::sendMessage);
+            return;
+        }
+
+        final String warpName = args[0];
+
+        plugin.runAsync(() -> {
+            try {
+                // Check if warp exists
+                final var warps = plugin.getManager().warps().getWarps();
+                if (!warps.contains(warpName)) {
+                    plugin.getLocales().getLocale("error_warp_not_found", warpName)
+                            .ifPresent(executor::sendMessage);
+                    return;
+                }
+
+                // Remove the warp permission in database
+                plugin.getDatabase().removeWarpPermission(warpName);
+
+                plugin.getLocales().getLocale("warp_unlocked", warpName)
+                        .ifPresent(executor::sendMessage);
+
+            } catch (Exception e) {
+                plugin.log(Level.SEVERE, "Error removing warp permission", e);
+                plugin.getLocales().getLocale("error_generic")
+                        .ifPresent(executor::sendMessage);
+            }
+        });
+    }
+
+    // Remove a permission requirement for a specific server (unlockserver)
+    private void unlockServer(@NotNull CommandUser executor, @NotNull String[] args) {
+        if (args.length < 1) {
+            plugin.getLocales().getLocale("error_invalid_syntax",
+                            "/" + getName() + " unlockserver <server>")
+                    .ifPresent(executor::sendMessage);
+            return;
+        }
+
+        final String serverName = args[0];
+
+        plugin.runAsync(() -> {
+            try {
+                // Remove the server permission in database
+                plugin.getDatabase().removeServerPermission(serverName);
+
+                plugin.getLocales().getLocale("server_unlocked", serverName)
+                        .ifPresent(executor::sendMessage);
+
+            } catch (Exception e) {
+                plugin.log(Level.SEVERE, "Error removing server permission", e);
+                plugin.getLocales().getLocale("error_generic")
+                        .ifPresent(executor::sendMessage);
+            }        });
+    }
+
+    /**
+     * Get a list of all known server names from master-slave relationships.
+     * This includes the current server, all master servers, and all slave servers.
+     *
+     * @return A list of all known server names
+     */
+    private List<String> getAllKnownServerNames() {
+        final Set<String> serverNames = new HashSet<>();
+        
+        // Add current server name
+        serverNames.add(plugin.getServerName());
+        
+        // Get all slave servers for the current server
+        serverNames.addAll(plugin.getDatabase().getSlaveServers(plugin.getServerName()));
+        
+        // Get the master server for the current server if it exists
+        plugin.getDatabase().getMasterServer(plugin.getServerName()).ifPresent(serverNames::add);
+        
+        // Check for other master-slave relationships in the database
+        for (String serverName : new HashSet<>(serverNames)) {
+            serverNames.addAll(plugin.getDatabase().getSlaveServers(serverName));
+        }
+        
+        return serverNames.stream().sorted().toList();
+    }
+
+    private List<String> getAllKnownMasterServerNames() {
+        // Get all master servers from the database
+        return plugin.getDatabase().getAllMasterServers().stream()
+                .sorted()
+                .toList();
+    }
+
+    private List<String> getAllKnownSlaveServerNames(String masterServer) {
+        // Get all slave servers for a specific master server
+        return plugin.getDatabase().getSlaveServers(masterServer).stream()
+                .sorted()
+                .toList();
     }
 
     @Override
@@ -340,14 +637,29 @@ public class HuskHomesCommand extends Command implements TabProvider {
                         .mapToObj(Integer::toString).toList();
                 case "import" -> List.of("start", "list");
                 case "delete" -> List.of("player", "homes", "warps");
+                case "lockwarp", "unlockwarp" -> plugin.getManager().warps().getWarps();
+                case "lockserver", "unlockserver", "linkserver", "unlinkserver" -> getAllKnownServerNames();
+                case "setpreferredserver" -> getAllKnownMasterServerNames();
                 default -> null;
             };
-            case 3 -> {
-                if (!args[0].equalsIgnoreCase("import") && !args[1].equalsIgnoreCase("start")) {
+            case 3 -> switch (args[0].toLowerCase()) {
+                case "import" -> {
+                    if (!args[1].equalsIgnoreCase("start")) {
+                        yield null;
+                    }
+                    yield plugin.getImporters().stream().map(Importer::getImporterName).toList();
+                }
+                case "linkserver", "unlinkserver" -> getAllKnownServerNames();
+                case "setpreferredserver" -> {
+                    if (getAllKnownMasterServerNames().contains(args[1])) {
+                        List<String> servers = getAllKnownSlaveServerNames(args[1]);
+                        servers.add(args[1]);
+                        yield servers;
+                    }
                     yield null;
                 }
-                yield plugin.getImporters().stream().map(Importer::getImporterName).toList();
-            }
+                default -> null;
+            };
             default -> null;
         };
     }

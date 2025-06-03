@@ -302,6 +302,135 @@ public final class Settings {
         @Comment("Whether player respawn positions should work cross-server. "
                 + "Docs: https://william278.net/docs/huskhomes/global-respawning/")
         private boolean globalRespawning = false;
+
+        @Comment("Server linking configuration for master-slave warp replication")
+        private ServerLinkingSettings serverLinking = new ServerLinkingSettings();
+
+        @Getter
+        @Configuration
+        @NoArgsConstructor
+        public static class ServerLinkingSettings {
+            @Comment("Whether to enable server linking for warp replication")
+            private boolean enabled = false;
+
+            @Comment("Map of master servers to their slave servers. Format: master-server: [slave-server1, slave-server2]")
+            private Map<String, List<String>> linkMap = Map.of(
+                "survival-1", List.of("survival-2"),
+                "creative-1", List.of("creative-2")
+            );
+
+            @NotNull
+            public List<String> getSlaveServers(@NotNull String masterServer) {
+                return linkMap.getOrDefault(masterServer, Collections.emptyList());
+            }
+
+            @NotNull
+            public Optional<String> getMasterServer(@NotNull String serverName) {
+                return linkMap.entrySet().stream()
+                    .filter(entry -> entry.getValue().contains(serverName))
+                    .map(Map.Entry::getKey)
+                    .findFirst();
+            }
+
+            public boolean isLinkedServer(@NotNull String serverName) {
+                return linkMap.containsKey(serverName) || 
+                       linkMap.values().stream().anyMatch(slaves -> slaves.contains(serverName));
+            }
+        }
+
+        @Comment("Warp permission configuration for individual warp access control")
+        private WarpPermissionSettings warpPermissions = new WarpPermissionSettings();
+
+        @Getter
+        @Configuration
+        @NoArgsConstructor
+        public static class WarpPermissionSettings {
+            @Comment("Whether to enable individual warp permission restrictions")
+            private boolean enabled = false;
+
+            @Comment("Map of warp names to required permissions. Format: warp-name: permission.node")
+            private Map<String, String> warpPermissionMap = Map.of(
+                "vip", "warps.vip",
+                "admin", "warps.admin"
+            );
+
+            @NotNull
+            public Optional<String> getWarpPermission(@NotNull String warpName) {
+                return Optional.ofNullable(warpPermissionMap.get(warpName));
+            }
+
+            public void setWarpPermission(@NotNull String warpName, @NotNull String permission) {
+                warpPermissionMap.put(warpName, permission);
+            }
+
+            public void removeWarpPermission(@NotNull String warpName) {
+                warpPermissionMap.remove(warpName);
+            }
+        }
+
+        @Comment("Server permission configuration for server-wide access control")
+        private ServerPermissionSettings serverPermissions = new ServerPermissionSettings();
+
+        @Getter
+        @Configuration
+        @NoArgsConstructor
+        public static class ServerPermissionSettings {
+            @Comment("Whether to enable server-wide permission restrictions")
+            private boolean enabled = false;
+
+            @Comment("Map of server names to required permissions. Format: server-name: permission.node")
+            private Map<String, String> serverPermissionMap = Map.of(
+                "survival-2", "serverwarps.survival.2",
+                "creative-1", "serverwarps.creative.1"
+            );
+
+            @NotNull
+            public Optional<String> getServerPermission(@NotNull String serverName) {
+                return Optional.ofNullable(serverPermissionMap.get(serverName));
+            }
+
+            public void setServerPermission(@NotNull String serverName, @NotNull String permission) {
+                serverPermissionMap.put(serverName, permission);
+            }
+
+            public void removeServerPermission(@NotNull String serverName) {
+                serverPermissionMap.remove(serverName);
+            }
+        }
+
+        @Comment("User preferred server settings for duplicated warps")
+        private PreferredServerSettings preferredServers = new PreferredServerSettings();
+
+        @Getter
+        @Configuration
+        @NoArgsConstructor
+        public static class PreferredServerSettings {
+            @Comment("Whether to enable preferred server functionality")
+            private boolean enabled = false;
+
+            @Comment("Map of user UUIDs to their preferred server configurations. Format: uuid: {master-server: preferred-server}")
+            private Map<String, Map<String, String>> userPreferences = new HashMap<>();
+
+            @NotNull
+            public Optional<String> getPreferredServer(@NotNull UUID userId, @NotNull String masterServer) {
+                return Optional.ofNullable(userPreferences.get(userId.toString()))
+                    .map(prefs -> prefs.get(masterServer));
+            }            @SuppressWarnings("unused")
+            public void setPreferredServer(@NotNull UUID userId, @NotNull String masterServer, @NotNull String preferredServer) {
+                userPreferences.computeIfAbsent(userId.toString(), k -> new HashMap<>())
+                    .put(masterServer, preferredServer);
+            }
+
+            public void removePreferredServer(@NotNull UUID userId, @NotNull String masterServer) {
+                Map<String, String> userPrefs = userPreferences.get(userId.toString());
+                if (userPrefs != null) {
+                    userPrefs.remove(masterServer);
+                    if (userPrefs.isEmpty()) {
+                        userPreferences.remove(userId.toString());
+                    }
+                }
+            }
+        }
     }
 
     @Comment("Random teleport (/rtp) settings.")
@@ -437,14 +566,13 @@ public final class Settings {
 
         SoundEffectAction(@NotNull String defaultEffect) {
             this.defaultEffect = defaultEffect;
-        }
-
-        @NotNull
+        }        @NotNull
+        @SuppressWarnings("unused")
         public static Map<SoundEffectAction, String> getDefaults() {
             return Arrays.stream(values()).collect(Collectors.toMap(
                     action -> action,
                     action -> action.defaultEffect,
-                    (a, b) -> a,
+                    (existing, replacement) -> existing,
                     TreeMap::new
             ));
         }
