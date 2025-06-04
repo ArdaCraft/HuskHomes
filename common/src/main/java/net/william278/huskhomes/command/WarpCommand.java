@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
 
 public class WarpCommand extends SavedPositionCommand<Warp> {
 
@@ -136,7 +137,7 @@ public class WarpCommand extends SavedPositionCommand<Warp> {
 
         return Optional.of(modifiedWarp);
     }
-
+    
     private Optional<Warp> resolveWarpWithUserPreference(@NotNull OnlineUser user, @NotNull String warpName) {
         // Find the warp first to determine its master server
         final Optional<Warp> originalWarp = plugin.getDatabase().getWarp(warpName, false);
@@ -157,30 +158,74 @@ public class WarpCommand extends SavedPositionCommand<Warp> {
         } else {
             // Not part of any linking configuration
             return originalWarp;
+        }        // Check user's preferred server for this master from database
+        Optional<String> preferredServer = plugin.getDatabase().getUserPreferredServer(user.getUuid(), masterServer);
+        
+        // If no user preference set, check for permission-based default
+        if (preferredServer.isEmpty()) {
+            preferredServer = getPermissionBasedDefaultServer(user, masterServer);
         }
-
-        // Check user's preferred server for this master from database
-        final Optional<String> preferredServer = plugin.getDatabase().getUserPreferredServer(user.getUuid(), masterServer);
+        
         if (preferredServer.isEmpty()) {
             return originalWarp;
         }
 
+        final String finalPreferredServer = preferredServer.get();
+
         // Validate server permission
-        if (!hasServerPermission(user, preferredServer.get())) {
+        if (!hasServerPermission(user, finalPreferredServer)) {
             return originalWarp; // Fall back to original server
         }
 
         // Try to find warp on preferred server
         final Optional<Warp> preferredWarp = plugin.getDatabase().getWarp(warpName, false)
-                .filter(w -> w.getServer().equals(preferredServer.get()));
+                .filter(w -> w.getServer().equals(finalPreferredServer));
 
         if (preferredWarp.isPresent()) {
             return preferredWarp;
         } else {
             // Create a copy of the original warp with the preferred server
             Warp modifiedWarp = originalWarp.get().copy();
-            modifiedWarp.setServer(preferredServer.get());
+            modifiedWarp.setServer(finalPreferredServer);
             return Optional.of(modifiedWarp);
         }
+    }
+
+    /**
+     * Checks for permission-based default preferred server for the given master server.
+     * Permission format: huskhomes.linkedserver.<master-server>.preferreddefault.<preferred-server>
+     * 
+     * @param user The user to check permissions for
+     * @param masterServer The master server name
+     * @return Optional containing the preferred server name if permission is found, empty otherwise
+     */
+    private Optional<String> getPermissionBasedDefaultServer(@NotNull OnlineUser user, @NotNull String masterServer) {
+        try {
+            // Get all slave servers for this master
+            final List<String> linkedServers = plugin.getDatabase().getSlaveServers(masterServer);
+            
+            // Add the master server itself as a possible preference target
+            linkedServers.add(masterServer);
+            
+            // Check permissions for each linked server
+            for (String serverName : linkedServers) {
+                if (serverName == null || serverName.trim().isEmpty()) {
+                    continue; // Skip invalid server names
+                }
+                
+                // Normalize server names to lowercase for permission consistency
+                String permission = "huskhomes.linkedserver." + masterServer.toLowerCase().trim() + 
+                                  ".preferreddefault." + serverName.toLowerCase().trim();
+                
+                if (user.hasPermission(permission)) {
+                    return Optional.of(serverName);
+                }
+            }
+        } catch (Exception e) {
+            plugin.log(Level.WARNING, "Error checking permission-based default server for user " + 
+                      user.getUsername() + " and master " + masterServer, e);
+        }
+        
+        return Optional.empty();
     }
 }
