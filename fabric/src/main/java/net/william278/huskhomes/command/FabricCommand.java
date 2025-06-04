@@ -21,6 +21,8 @@ package net.william278.huskhomes.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
+import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import me.lucko.fabric.api.permissions.v0.PermissionCheckEvent;
 import me.lucko.fabric.api.permissions.v0.Permissions;
@@ -76,9 +78,7 @@ public class FabricCommand {
                 return TriState.TRUE;
             }
             return TriState.DEFAULT;
-        });
-
-        // Register aliases
+        });        // Register aliases
         final LiteralCommandNode<ServerCommandSource> node = dispatcher.register(builder);
         dispatcher.register(literal("huskhomes:" + command.getName())
                 .requires(predicate).executes(getBrigadierExecutor()).redirect(node));
@@ -90,18 +90,50 @@ public class FabricCommand {
         return (context) -> {
             command.onExecuted(
                     resolveExecutor(context.getSource()),
-                    command.removeFirstArg(context.getInput().split(" "))
+                    parseCommandArgs(context.getInput(), command.getName())
             );
             return 1;
         };
     }
 
-    private com.mojang.brigadier.suggestion.SuggestionProvider<ServerCommandSource> getBrigadierSuggester() {
+    /**
+     * Parse command arguments, handling execute command wrappers properly.
+     * When a command is run through /execute ... run [command], we need to extract
+     * only the arguments relevant to our specific command.
+     *
+     * @param input       the full command input string
+     * @param commandName the name of our command
+     * @return the parsed arguments for our command
+     */
+    private String[] parseCommandArgs(String input, String commandName) {
+        String[] parts = input.split(" ");
+        
+        // Find the position of our command name in the input
+        int commandIndex = -1;
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].equals(commandName)) {
+                commandIndex = i;
+                break;            
+            }
+        }
+
+        // If we found our command, return everything after it
+        if (commandIndex >= 0 && commandIndex < parts.length - 1) {
+            String[] args = new String[parts.length - commandIndex - 1];
+            System.arraycopy(parts, commandIndex + 1, args, 0, args.length);
+            return args;
+        }
+
+        // Fallback to the original behavior if we can't find our command
+        return command.removeFirstArg(parts);
+    }
+
+    private SuggestionProvider<ServerCommandSource> getBrigadierSuggester() {
         if (!(command instanceof TabProvider provider)) {
-            return (context, builder) -> com.mojang.brigadier.suggestion.Suggestions.empty();
+            return (context, builder) -> Suggestions.empty();
         }
         return (context, builder) -> {
-            final String[] args = command.removeFirstArg(context.getInput().split(" ", -1));
+            final String[] args = parseCommandArgs(context.getInput(), command.getName());
             provider.getSuggestions(resolveExecutor(context.getSource()), args).stream()
                     .map(suggestion -> {
                         final String completedArgs = String.join(" ", args);
