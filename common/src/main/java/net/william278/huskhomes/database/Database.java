@@ -475,7 +475,9 @@ public abstract class Database {
      *
      * @return An integer; the number of deleted warps
      */
-    public abstract int deleteAllWarps();    /**
+    public abstract int deleteAllWarps();
+
+    /**
      * Deletes all {@link Warp}s on a specific world and server (given by name) from the warp table on the database.
      *
      * @param worldName  The name of the world to delete warps from
@@ -600,7 +602,8 @@ public abstract class Database {
      * @param masterServer    The name of the master server
      * @param preferredServer The preferred server
      */
-    public abstract void setUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer, @NotNull String preferredServer);
+    public abstract void setUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer,
+                                                @NotNull String preferredServer);
 
     /**
      * Remove a user's preferred server for a given master server.

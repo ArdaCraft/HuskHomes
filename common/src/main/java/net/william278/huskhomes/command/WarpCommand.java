@@ -1,3 +1,22 @@
+/*
+ * This file is part of HuskHomes, licensed under the Apache License 2.0.
+ *
+ *  Copyright (c) William278 <will27528@gmail.com>
+ *  Copyright (c) contributors
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 package net.william278.huskhomes.command;
 
 import net.william278.huskhomes.HuskHomes;
@@ -63,7 +82,8 @@ public class WarpCommand extends SavedPositionCommand<Warp> {
             warp.ifPresent(w -> execute(executor, w, removeFirstArg(removeFirstArg(args))));
             return;
         }
-          // Check if user has preferred server settings and apply them
+
+        // Check if user has preferred server settings and apply them
         if (executor instanceof OnlineUser user) {
             final Optional<Warp> warpWithPreference = resolveWarpWithUserPreference(user, warpName);
             if (warpWithPreference.isPresent()) {
@@ -176,7 +196,8 @@ public class WarpCommand extends SavedPositionCommand<Warp> {
      * @param preferredServer the target server name
      * @return the resolved warp with its server field overridden, or empty if not found
      */
-    private Optional<Warp> resolveWarpWithServer(@NotNull CommandUser executor, @NotNull String warpName, @NotNull String preferredServer) {
+    private Optional<Warp> resolveWarpWithServer(@NotNull CommandUser executor, @NotNull String warpName,
+                                                 @NotNull String preferredServer) {
         // First try to find the warp on the preferred server
         Optional<Warp> warp = plugin.getDatabase().getWarp(warpName, false)
                 .filter(w -> w.getServer().equals(preferredServer));
@@ -282,8 +303,8 @@ public class WarpCommand extends SavedPositionCommand<Warp> {
 
     /**
      * Checks for permission-based default preferred server for the given master server.
-     * Permission format: huskhomes.linkedserver.<master-server>.preferreddefault.<preferred-server>
-     * 
+     * Permission format: huskhomes.linkedserver.{@code <master-server>.preferreddefault.<preferred-server>}.     *
+     *
      * @param user The user to check permissions for
      * @param masterServer The master server name
      * @return Optional containing the preferred server name if permission is found, empty otherwise
@@ -303,16 +324,20 @@ public class WarpCommand extends SavedPositionCommand<Warp> {
                 }
                 
                 // Normalize server names to lowercase for permission consistency
-                String permission = "huskhomes.linkedserver." + masterServer.toLowerCase().trim() + 
-                                  ".preferreddefault." + serverName.toLowerCase().trim();
+                String permission = "huskhomes.linkedserver."
+                        + masterServer.toLowerCase().trim()
+                        + ".preferreddefault."
+                        + serverName.toLowerCase().trim();
                 
                 if (user.hasPermission(permission)) {
                     return Optional.of(serverName);
                 }
             }
         } catch (Exception e) {
-            plugin.log(Level.WARNING, "Error checking permission-based default server for user " + 
-                      user.getUsername() + " and master " + masterServer, e);
+            plugin.log(Level.WARNING, "Error checking permission-based default server for user "
+                    + user.getUsername()
+                    + " and master "
+                    + masterServer, e);
         }
         
         return Optional.empty();

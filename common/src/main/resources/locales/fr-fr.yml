@@ -195,3 +195,24 @@ locales:
   tpaall_command_description: 'Demander à tout les joueurs de se téléporter à votre position'
   tpall_command_description: 'Téléporter tout les joueurs à votre porition'
   huskhomes_command_description: 'Voir les informations sur le plugin & recharger la configuration'
+  error_specify_warp: "&cPlease specify a warp to teleport to"
+  error_specify_warp_and_permission: "&cPlease specify a warp name and permission"
+  error_specify_server_and_permission: "&cPlease specify a server name and permission"
+  error_specify_master_and_slave: "&cPlease specify a master server and child server"
+  error_specify_master_and_preferred: "&cPlease specify a master server and preferred server"
+  error_server_not_linked: '[Error:](#ff3300) [The server %1% is not linked to another server.](#ff7e5e)'
+  warp_permission_set: '[Successfully locked warp](#00fb9a) [%1%](#00fb9a bold) [behind permission](#00fb9a) [%2%](#00fb9a bold)'
+  warp_permission_removed: '[Successfully unlocked warp](#00fb9a) [%1%](#00fb9a bold) [from permission requirement](#00fb9a)'
+  server_permission_set: '[Successfully locked server](#00fb9a) [%1%](#00fb9a bold) [behind permission](#00fb9a) [%2%](#00fb9a bold)'
+  server_permission_removed: '[Successfully unlocked server](#00fb9a) [%1%](#00fb9a bold) [from permission requirement](#00fb9a)'
+  server_link_added: '[Successfully linked server](#00fb9a) [%1%](#00fb9a bold) [to master server](#00fb9a) [%2%](#00fb9a bold)'
+  server_link_removed: '[Successfully unlinked server](#00fb9a) [%1%](#00fb9a bold) [from master server](#00fb9a) [%2%](#00fb9a bold)'
+  ignore_offline_enabled: "&aYou will now ignore players who are offline when teleporting"
+  ignore_offline_disabled: "&aYou will no longer ignore players who are offline when teleporting"
+  warp_locked: "&aLocked warp &f%1%&a behind permission &f%2%"
+  warp_unlocked: "&aUnlocked warp &f%1%&a from permission restriction"
+  server_locked: "&aLocked server &f%1%&a behind permission &f%2%"
+  server_unlocked: "&aUnlocked server &f%1%&a from permission restriction"
+  server_linked: "&aLinked &f%1%&a to master &f%2%"
+  server_unlinked: "&aUnlinked &f%1%&a from master server &f%2%"
+  preferred_server_set: "&aSet your preferred server for &f%1%&a to &f%2%"

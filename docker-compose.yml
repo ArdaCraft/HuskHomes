@@ -1,0 +1,127 @@
+services:
+
+  # ---------------------------------------------------------------------------
+  # ardacraft  — MC :25565  |  remote debug :5005
+  # ---------------------------------------------------------------------------
+  ardacraft:
+    image: itzg/minecraft-server:java21-alpine
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      - huskhomes-net
+    environment:
+      EULA: "TRUE"
+      TYPE: FABRIC
+      VERSION: "1.20.1"
+      FABRIC_LOADER_VERSION: "0.16.10"
+      MODE: creative
+      FORCE_GAMEMODE: "TRUE"
+      MEMORY: 512M
+      ONLINE_MODE: "false"
+      JVM_OPTS: >-
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+    ports:
+      - "25565:25565"
+      - "5005:5005"
+    volumes:
+      - ardacraft_data:/data
+      - ./dev/mods/ardacraft:/data/mods:z
+      - ./dev/config/ardacraft:/data/config:z
+
+  # ---------------------------------------------------------------------------
+  # building  — MC :25566  |  remote debug :5006
+  # ---------------------------------------------------------------------------
+  building:
+    image: itzg/minecraft-server:java21-alpine
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      - huskhomes-net
+    environment:
+      EULA: "TRUE"
+      TYPE: FABRIC
+      VERSION: "1.20.1"
+      FABRIC_LOADER_VERSION: "0.16.10"
+      MODE: creative
+      FORCE_GAMEMODE: "TRUE"
+      MEMORY: 512M
+      ONLINE_MODE: "false"
+      JVM_OPTS: >-
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006
+    ports:
+      - "25566:25565"
+      - "5006:5006"
+    volumes:
+      - building_data:/data
+      - ./dev/mods/building:/data/mods:z
+      - ./dev/config/building:/data/config:z
+
+  # ---------------------------------------------------------------------------
+  # plots  — MC :25567  |  remote debug :5007
+  # ---------------------------------------------------------------------------
+  plots:
+    image: itzg/minecraft-server:java21-alpine
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      - huskhomes-net
+    environment:
+      EULA: "TRUE"
+      TYPE: FABRIC
+      VERSION: "1.20.1"
+      FABRIC_LOADER_VERSION: "0.16.10"
+      MODE: creative
+      FORCE_GAMEMODE: "TRUE"
+      MEMORY: 512M
+      ONLINE_MODE: "false"
+      JVM_OPTS: >-
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5007
+    ports:
+      - "25567:25565"
+      - "5007:5007"
+    volumes:
+      - plots_data:/data
+      - ./dev/mods/plots:/data/mods:z
+      - ./dev/config/plots:/data/config:z
+
+  # ---------------------------------------------------------------------------
+  # lobby  — MC :25568  |  remote debug :5008
+  # ---------------------------------------------------------------------------
+  lobby:
+    image: itzg/minecraft-server:java21-alpine
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      - huskhomes-net
+    environment:
+      EULA: "TRUE"
+      TYPE: FABRIC
+      VERSION: "1.20.1"
+      FABRIC_LOADER_VERSION: "0.16.10"
+      MODE: creative
+      FORCE_GAMEMODE: "TRUE"
+      MEMORY: 512M
+      ONLINE_MODE: "false"
+      JVM_OPTS: >-
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5008
+    ports:
+      - "25568:25565"
+      - "5008:5008"
+    volumes:
+      - lobby_data:/data
+      - ./dev/mods/lobby:/data/mods:z
+      - ./dev/config/lobby:/data/config:z
+
+volumes:
+  ardacraft_data:
+  building_data:
+  plots_data:
+  lobby_data:
+
+networks:
+  huskhomes-net:
+    external: true

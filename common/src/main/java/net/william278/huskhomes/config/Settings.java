@@ -36,7 +36,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Plugin settings, read from config.yml
+ * Plugin settings, read from config.yml.
  */
 @SuppressWarnings("FieldMayBeFinal")
 @Getter
@@ -323,10 +323,11 @@ public final class Settings {
             @Comment("Whether to enable server linking for warp replication")
             private boolean enabled = false;
 
-            @Comment("Map of master servers to their slave servers. Format: master-server: [slave-server1, slave-server2]")
+            @Comment("Map of master servers to their slave servers. Format: master-server: "
+                    + "[slave-server1, slave-server2]")
             private Map<String, List<String>> linkMap = Map.of(
-                "survival-1", List.of("survival-2"),
-                "creative-1", List.of("creative-2")
+                    "survival-1", List.of("survival-2"),
+                    "creative-1", List.of("creative-2")
             );
 
             @NotNull
@@ -343,8 +344,8 @@ public final class Settings {
             }
 
             public boolean isLinkedServer(@NotNull String serverName) {
-                return linkMap.containsKey(serverName) || 
-                       linkMap.values().stream().anyMatch(slaves -> slaves.contains(serverName));
+                return linkMap.containsKey(serverName)
+                        || linkMap.values().stream().anyMatch(slaves -> slaves.contains(serverName));
             }
         }
 
@@ -370,8 +371,8 @@ public final class Settings {
 
             @Comment("Map of warp names to required permissions. Format: warp-name: permission.node")
             private Map<String, String> warpPermissionMap = Map.of(
-                "vip", "warps.vip",
-                "admin", "warps.admin"
+                    "vip", "warps.vip",
+                    "admin", "warps.admin"
             );
 
             @NotNull
@@ -409,8 +410,8 @@ public final class Settings {
 
             @Comment("Map of server names to required permissions. Format: server-name: permission.node")
             private Map<String, String> serverPermissionMap = Map.of(
-                "survival-2", "serverwarps.survival.2",
-                "creative-1", "serverwarps.creative.1"
+                    "survival-2", "serverwarps.survival.2",
+                    "creative-1", "serverwarps.creative.1"
             );
 
             @NotNull
@@ -450,17 +451,21 @@ public final class Settings {
             @Comment("Whether to enable preferred server functionality")
             private boolean enabled = false;
 
-            @Comment("Map of user UUIDs to their preferred server configurations. Format: uuid: {master-server: preferred-server}")
+            @Comment("Map of user UUIDs to their preferred server configurations. "
+                    + "Format: uuid: {master-server: preferred-server}")
             private Map<String, Map<String, String>> userPreferences = new HashMap<>();
 
             @NotNull
             public Optional<String> getPreferredServer(@NotNull UUID userId, @NotNull String masterServer) {
                 return Optional.ofNullable(userPreferences.get(userId.toString()))
                     .map(prefs -> prefs.get(masterServer));
-            }            @SuppressWarnings("unused")
-            public void setPreferredServer(@NotNull UUID userId, @NotNull String masterServer, @NotNull String preferredServer) {
+            }
+
+            @SuppressWarnings("unused")
+            public void setPreferredServer(@NotNull UUID userId, @NotNull String masterServer,
+                                           @NotNull String preferredServer) {
                 userPreferences.computeIfAbsent(userId.toString(), k -> new HashMap<>())
-                    .put(masterServer, preferredServer);
+                        .put(masterServer, preferredServer);
             }
 
             public void removePreferredServer(@NotNull UUID userId, @NotNull String masterServer) {
@@ -608,7 +613,14 @@ public final class Settings {
 
         SoundEffectAction(@NotNull String defaultEffect) {
             this.defaultEffect = defaultEffect;
-        }        @NotNull
+        }
+
+        /**
+         * Get default configuration.
+         *
+         * @return the default configuration.
+         */
+        @NotNull
         @SuppressWarnings("unused")
         public static Map<SoundEffectAction, String> getDefaults() {
             return Arrays.stream(values()).collect(Collectors.toMap(
@@ -619,5 +631,4 @@ public final class Settings {
             ));
         }
     }
-
 }

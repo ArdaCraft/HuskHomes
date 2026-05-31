@@ -1260,7 +1260,9 @@ public class PostgreSqlDatabase extends Database {
         } catch (SQLException e) {
             plugin.log(Level.SEVERE, "Failed to delete warps in the world " + worldName + " on the server "
                     + serverName + " from the database", e);
-        }        return 0;
+        }
+
+        return 0;
     }
 
     // Server linking methods implementation
@@ -1463,8 +1465,12 @@ public class PostgreSqlDatabase extends Database {
     @Override
     public Optional<String> getUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer) {
         try (Connection connection = getConnection()) {
+
             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                    SELECT "preferred_server" FROM "%user_preferences_table%" WHERE "user_uuid" = ? AND "master_server" = ?;"""))) {
+                    SELECT "preferred_server" FROM "%user_preferences_table%"\s
+                    WHERE "user_uuid" = ?\s
+                    AND "master_server" = ?;"""))) {
+
                 statement.setString(1, userId.toString());
                 statement.setString(2, masterServer);
                 
@@ -1474,20 +1480,28 @@ public class PostgreSqlDatabase extends Database {
                 }
             }
         } catch (SQLException e) {
-            plugin.log(Level.SEVERE, "Failed to get preferred server for user " + userId + " and master " + masterServer, e);
+            plugin.log(Level.SEVERE, "Failed to get preferred server for user "
+                    + userId + " and master "
+                    + masterServer, e);
         }
         return Optional.empty();
     }
 
     @Override
-    public void setUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer, @NotNull String preferredServer) {
+    public void setUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer,
+                                       @NotNull String preferredServer) {
         try (Connection connection = getConnection()) {
+
             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                    INSERT INTO "%user_preferences_table%" ("user_uuid", "master_server", "preferred_server") VALUES (?, ?, ?)
-                    ON CONFLICT ("user_uuid", "master_server") DO UPDATE SET "preferred_server" = EXCLUDED."preferred_server";"""))) {
+                    INSERT INTO "%user_preferences_table%" ("user_uuid", "master_server", "preferred_server")\s
+                    VALUES (?, ?, ?)
+                    ON CONFLICT ("user_uuid", "master_server")\s
+                    DO UPDATE SET "preferred_server" = EXCLUDED."preferred_server";"""))) {
+
                 statement.setString(1, userId.toString());
                 statement.setString(2, masterServer);
                 statement.setString(3, preferredServer);
+
                 statement.executeUpdate();
             }
         } catch (SQLException e) {
@@ -1505,7 +1519,10 @@ public class PostgreSqlDatabase extends Database {
                 statement.executeUpdate();
             }
         } catch (SQLException e) {
-            plugin.log(Level.SEVERE, "Failed to remove preferred server for user " + userId + " and master " + masterServer, e);
+
+            plugin.log(Level.SEVERE, "Failed to remove preferred server for user "
+                    + userId + " and master "
+                    + masterServer, e);
         }
     }
 

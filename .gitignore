@@ -38,6 +38,11 @@ bin/
 /nbdist/
 /.nb-gradle/
 
+### Dev environment ###
+dev/mods/*
+dev/data/
+dev/config/*
+
 ### VS Code ###
 .vscode/
 

@@ -42,6 +42,7 @@ import java.util.stream.IntStream;
 public class HuskHomesCommand extends Command implements TabProvider {
 
     private static final Map<String, Boolean> SUB_COMMANDS;
+
     static {
         Map<String, Boolean> commands = new HashMap<>();
         commands.put("about", false);
@@ -409,14 +410,16 @@ public class HuskHomesCommand extends Command implements TabProvider {
 
                 // Set the preference in database
                 plugin.getDatabase().setUserPreferredServer(targetUser.getUuid(), masterServer, preferredServer);
-                plugin.getLocales().getLocale("preferred_server_set", targetUser.getUsername(), masterServer, preferredServer)
+                plugin.getLocales().getLocale("preferred_server_set", targetUser.getUsername(),
+                                masterServer, preferredServer)
                         .ifPresent(executor::sendMessage);
 
             } catch (Exception e) {
                 plugin.log(Level.SEVERE, "Error setting preferred server", e);
                 plugin.getLocales().getLocale("error_generic")
                         .ifPresent(executor::sendMessage);
-            }        });
+            }
+        });
     }
 
     /**
@@ -461,7 +464,8 @@ public class HuskHomesCommand extends Command implements TabProvider {
                 plugin.log(Level.SEVERE, "Error setting warp permission", e);
                 plugin.getLocales().getLocale("error_generic")
                         .ifPresent(executor::sendMessage);
-            }        });
+            }
+        });
     }
 
     /**
@@ -652,7 +656,8 @@ public class HuskHomesCommand extends Command implements TabProvider {
                 plugin.log(Level.SEVERE, "Error removing server permission", e);
                 plugin.getLocales().getLocale("error_generic")
                         .ifPresent(executor::sendMessage);
-            }        });
+            }
+        });
     }
 
     /**

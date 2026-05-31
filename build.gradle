@@ -222,6 +222,11 @@ logger.lifecycle("Building HuskHomes ${version} by William278")
 
 @SuppressWarnings('GrMethodMayBeStatic')
 def versionMetadata() {
+    // Allow forcing a clean release version with -Prelease
+    if (project.hasProperty('release')) {
+        return ''
+    }
+
     // Require grgit
     if (grgit == null) {
         return '-unknown'

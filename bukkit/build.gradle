@@ -7,6 +7,7 @@ dependencies {
     implementation 'net.kyori:adventure-platform-bukkit:4.3.3'
 
     compileOnly 'org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT'
+    compileOnly "redis.clients:jedis:${jedis_version}"
     compileOnly 'org.jetbrains:annotations:24.1.0'
     compileOnly 'net.william278:minedown:1.8.2'
     compileOnly 'net.william278:DesertWell:2.0.4'

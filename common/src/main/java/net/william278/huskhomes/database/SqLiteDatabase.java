@@ -1178,7 +1178,8 @@ public class SqLiteDatabase extends Database {
         } catch (SQLException e) {
             plugin.log(Level.SEVERE, "Failed to delete warps in the world " + worldName + " on the server "
                     + serverName + " from the database", e);
-        }        return 0;
+        }
+        return 0;
     }
 
     // Server linking methods implementation
@@ -1189,7 +1190,7 @@ public class SqLiteDatabase extends Database {
         try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
                 SELECT `slave_server` FROM `%server_links_table%` WHERE `master_server` = ?;"""))) {
             statement.setString(1, masterServer);
-            
+
             final ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
                 slaves.add(resultSet.getString("slave_server"));
@@ -1220,7 +1221,7 @@ public class SqLiteDatabase extends Database {
         try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
                 SELECT `master_server` FROM `%server_links_table%` WHERE `slave_server` = ?;"""))) {
             statement.setString(1, serverName);
-            
+
             final ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
                 return Optional.of(resultSet.getString("master_server"));
@@ -1273,7 +1274,7 @@ public class SqLiteDatabase extends Database {
         try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
                 SELECT `permission` FROM `%warp_permissions_table%` WHERE `warp_name` = ?;"""))) {
             statement.setString(1, warpName);
-            
+
             final ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
                 return Optional.of(resultSet.getString("permission"));
@@ -1314,7 +1315,7 @@ public class SqLiteDatabase extends Database {
         try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
                 SELECT `permission` FROM `%server_permissions_table%` WHERE `server_name` = ?;"""))) {
             statement.setString(1, serverName);
-            
+
             final ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
                 return Optional.of(resultSet.getString("permission"));
@@ -1352,29 +1353,41 @@ public class SqLiteDatabase extends Database {
 
     @Override
     public Optional<String> getUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer) {
+
         try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                SELECT `preferred_server` FROM `%user_preferences_table%` WHERE `user_uuid` = ? AND `master_server` = ?;"""))) {
+                SELECT `preferred_server`\s
+                FROM `%user_preferences_table%`\s
+                WHERE `user_uuid` = ?\s
+                AND `master_server` = ?;"""))) {
+
             statement.setString(1, userId.toString());
             statement.setString(2, masterServer);
-            
+
             final ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
                 return Optional.of(resultSet.getString("preferred_server"));
             }
         } catch (SQLException e) {
-            plugin.log(Level.SEVERE, "Failed to get preferred server for user " + userId + " and master " + masterServer, e);
+            plugin.log(Level.SEVERE, "Failed to get preferred server for user "
+                    + userId
+                    + " and master " + masterServer, e);
         }
         return Optional.empty();
     }
 
     @Override
-    public void setUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer, @NotNull String preferredServer) {
+    public void setUserPreferredServer(@NotNull UUID userId, @NotNull String masterServer,
+                                       @NotNull String preferredServer) {
+
         try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                INSERT OR REPLACE INTO `%user_preferences_table%` (`user_uuid`, `master_server`, `preferred_server`) VALUES (?, ?, ?);"""))) {
+                INSERT OR REPLACE INTO `%user_preferences_table%` (`user_uuid`, `master_server`, `preferred_server`)\s
+                VALUES (?, ?, ?);"""))) {
+
             statement.setString(1, userId.toString());
             statement.setString(2, masterServer);
             statement.setString(3, preferredServer);
             statement.executeUpdate();
+
         } catch (SQLException e) {
             plugin.log(Level.SEVERE, "Failed to set preferred server for user " + userId, e);
         }
@@ -1388,7 +1401,8 @@ public class SqLiteDatabase extends Database {
             statement.setString(2, masterServer);
             statement.executeUpdate();
         } catch (SQLException e) {
-            plugin.log(Level.SEVERE, "Failed to remove preferred server for user " + userId + " and master " + masterServer, e);
+            plugin.log(Level.SEVERE,
+                    "Failed to remove preferred server for user " + userId + " and master " + masterServer, e);
         }
     }
 
