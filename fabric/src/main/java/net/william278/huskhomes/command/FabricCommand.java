@@ -128,6 +128,17 @@ public class FabricCommand {
         return command.removeFirstArg(parts);
     }
 
+    /**
+     * Builds the Brigadier suggestion provider for this command.
+     *
+     * <p>Uses {@link #parseCommandArgs} to extract only the arguments relevant to this command
+     * from the full input string. This mirrors the approach in {@link #getBrigadierExecutor} and
+     * ensures that tab-completion works correctly when the command is run through
+     * {@code /execute ... run <command>} (where Brigadier otherwise passes the entire
+     * {@code /execute} chain as the input, breaking argument offsets).
+     *
+     * @return a suggestion provider that delegates to the command's {@link TabProvider}
+     */
     private SuggestionProvider<ServerCommandSource> getBrigadierSuggester() {
         if (!(command instanceof TabProvider provider)) {
             return (context, builder) -> Suggestions.empty();

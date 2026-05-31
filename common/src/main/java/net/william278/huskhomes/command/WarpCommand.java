@@ -20,6 +20,23 @@ public class WarpCommand extends SavedPositionCommand<Warp> {
         addAdditionalPermissions(Map.of("player", true));
     }
 
+    /**
+     * Executes the /warp command, extending the default behaviour with server preference resolution.
+     *
+     * <p>Dispatch order:
+     * <ol>
+     *   <li>If no args: delegate to {@link WarpListCommand} to show the warp list.</li>
+     *   <li>If a second argument is supplied it is treated as an explicit server name; the executor's
+     *       server permission is checked, then the warp is resolved via
+     *       {@link #resolveWarpWithServer}.</li>
+     *   <li>Otherwise, for online players, {@link #resolveWarpWithUserPreference} is tried; if it
+     *       returns a warp (i.e. a preferred server is configured) that warp is used directly.</li>
+     *   <li>Falls through to the standard upstream {@code super.execute} path.</li>
+     * </ol>
+     *
+     * @param executor the command sender
+     * @param args     command arguments: {@code <warpName> [serverName]}
+     */
     @Override
     public void execute(@NotNull CommandUser executor, @NotNull String[] args) {
         if (args.length == 0) {
@@ -84,6 +101,22 @@ public class WarpCommand extends SavedPositionCommand<Warp> {
         this.teleport(executor, optionalTeleporter.get(), warp, TransactionResolver.Action.WARP_TELEPORT);
     }
 
+    /**
+     * Returns whether {@code executor} has permission to use {@code warp}.
+     *
+     * <p>Two independent checks are applied in order:
+     * <ol>
+     *   <li><b>Built-in HuskHomes restriction</b> — if {@code permissionRestrictWarps} is enabled in
+     *       settings, the executor must hold {@code warp.getPermission()} or the wildcard
+     *       {@link Warp#getWildcardPermission()}.</li>
+     *   <li><b>Database-stored permission</b> — if an explicit permission node was set for this warp
+     *       via {@code /huskhomes lockwarp}, the executor must also hold that node.</li>
+     * </ol>
+     *
+     * @param executor the command sender
+     * @param warp     the target warp
+     * @return {@code true} if all applicable permission checks pass
+     */
     private boolean hasWarpPermission(@NotNull CommandUser executor, @NotNull Warp warp) {
         // Check built-in permission system
         if (plugin.getSettings().getGeneral().isPermissionRestrictWarps()) {
@@ -102,6 +135,17 @@ public class WarpCommand extends SavedPositionCommand<Warp> {
         return true;
     }
 
+    /**
+     * Returns whether {@code executor} has access to warps on {@code serverName}.
+     *
+     * <p>If a permission node has been registered for the server via
+     * {@code /huskhomes lockserver}, the executor must hold that node. If no node is registered
+     * for the server, access is unrestricted by this check.
+     *
+     * @param executor   the command sender
+     * @param serverName the name of the server to check access for
+     * @return {@code true} if the server has no permission restriction, or the executor holds it
+     */
     private boolean hasServerPermission(@NotNull CommandUser executor, @NotNull String serverName) {
         final Optional<String> permission = plugin.getDatabase().getServerPermission(serverName);
         if (permission.isPresent() && !executor.hasPermission(permission.get())) {
@@ -110,6 +154,28 @@ public class WarpCommand extends SavedPositionCommand<Warp> {
         return true;
     }
 
+    /**
+     * Resolves a warp by name targeting a specific server, for explicit
+     * {@code /warp <name> <server>} invocations.
+     *
+     * <p>Resolution order:
+     * <ol>
+     *   <li>Look for a warp with {@code warpName} whose {@code server} field matches
+     *       {@code preferredServer} directly.</li>
+     *   <li>If not found, and {@code preferredServer} is a known slave server, fall back to
+     *       looking for the warp on its master server (accounting for replication lag).</li>
+     *   <li>If still not found, send {@code error_warp_invalid} to the executor and return
+     *       empty.</li>
+     * </ol>
+     *
+     * <p>When found, a copy of the warp is returned with its {@code server} field overridden to
+     * {@code preferredServer}, which causes HuskHomes to execute a cross-server teleport.
+     *
+     * @param executor        the command sender (used for error messages)
+     * @param warpName        the name of the warp to look up
+     * @param preferredServer the target server name
+     * @return the resolved warp with its server field overridden, or empty if not found
+     */
     private Optional<Warp> resolveWarpWithServer(@NotNull CommandUser executor, @NotNull String warpName, @NotNull String preferredServer) {
         // First try to find the warp on the preferred server
         Optional<Warp> warp = plugin.getDatabase().getWarp(warpName, false)
@@ -137,7 +203,30 @@ public class WarpCommand extends SavedPositionCommand<Warp> {
 
         return Optional.of(modifiedWarp);
     }
-    
+
+    /**
+     * Attempts to resolve a warp redirected to the user's preferred server.
+     *
+     * <p>Resolution chain:
+     * <ol>
+     *   <li>Locate the base warp by name; return empty immediately if it does not exist.</li>
+     *   <li>Determine whether the warp's server is a slave (look up its master) or is already a
+     *       master. Servers that are part of no linking configuration return the original warp
+     *       unchanged.</li>
+     *   <li>Look up the user's DB-stored preferred server for the resolved master.</li>
+     *   <li>If no DB preference exists, fall back to
+     *       {@link #getPermissionBasedDefaultServer}.</li>
+     *   <li>Validate the preferred server with {@link #hasServerPermission}; fall back to the
+     *       original warp if the user lacks access.</li>
+     *   <li>Return the warp on the preferred server — either a direct DB match, or a copy of the
+     *       original warp with its {@code server} field overridden.</li>
+     * </ol>
+     *
+     * @param user     the online player whose preferences are checked
+     * @param warpName the name of the warp to resolve
+     * @return the warp redirected to the preferred server, the original warp if no preference
+     *         applies, or empty if the warp does not exist
+     */
     private Optional<Warp> resolveWarpWithUserPreference(@NotNull OnlineUser user, @NotNull String warpName) {
         // Find the warp first to determine its master server
         final Optional<Warp> originalWarp = plugin.getDatabase().getWarp(warpName, false);

@@ -645,9 +645,13 @@ public abstract class Database {
         HOME_DATA("huskhomes_homes"),
         WARP_DATA("huskhomes_warps"),
         TELEPORT_DATA("huskhomes_teleports"),
+        /** Stores master→slave server link relationships, managed via {@code /huskhomes linkserver}. */
         SERVER_LINKS("huskhomes_server_links"),
+        /** Stores per-warp permission nodes, managed via {@code /huskhomes lockwarp}. */
         WARP_PERMISSIONS("huskhomes_warp_permissions"),
+        /** Stores per-server permission nodes, managed via {@code /huskhomes lockserver}. */
         SERVER_PERMISSIONS("huskhomes_server_permissions"),
+        /** Stores per-user preferred server mappings, managed via {@code /huskhomes setpreferredserver}. */
         USER_PREFERENCES("huskhomes_user_preferences");
 
         private final String defaultName;

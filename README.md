@@ -1,72 +1,165 @@
-<!--suppress ALL -->
-<p align="center">
-    <img src="images/banner.png" alt="HuskHomes" />
-    <a href="https://github.com/WiIIiam278/HuskHomes/actions/workflows/ci.yml">
-        <img src="https://img.shields.io/github/actions/workflow/status/WiIIiam278/HuskHomes/ci.yml?branch=master&logo=github"/>
-    </a> 
-    <a href="https://repo.william278.net/#/releases/net/william278/huskhomes/">
-        <img src="https://repo.william278.net/api/badge/latest/releases/net/william278/huskhomes/huskhomes-common?color=00fb9a&name=Maven&prefix=v" />
-    </a> 
-    <a href="https://discord.gg/tVYhJfyDWG">
-        <img src="https://img.shields.io/discord/818135932103557162.svg?label=&logo=discord&logoColor=fff&color=7389D8&labelColor=6A7EC2" />
-    </a> 
-    <br/>
-    <b>
-        <a href="https://modrinth.com/plugin/huskhomes">Modrinth</a>
-    </b> —
-    <b>
-        <a href="https://william278.net/docs/huskhomes/setup">Setup</a>
-    </b> — 
-    <b>
-        <a href="https://william278.net/docs/huskhomes/">Docs</a>
-    </b> — 
-    <b>
-        <a href="https://github.com/WiIIiam278/HuskHomes/issues">Issues</a>
-    </b>
-</p>
-<br/>
+# HuskHomes - ArdaCraft Fork (Fabric 1.20.1)
 
-**HuskHomes** is a powerful, intuitive and flexible teleportation plugin for _Minecraft: Java Edition_ servers. HuskHomes contains a meaty&mdash;but not bloated&mdash;set of player teleportation features, including set homes, warps, public homes, teleport requests, previous and offline position teleporting&mdash;and more. 
+This is the ArdaCraft server's fork of [HuskHomes by William278](https://github.com/WiIIiam278/HuskHomes), targeting **Fabric 1.20.1**.
 
-HuskHomes can be used on your Spigot, Sponge or Fabric server, and with a MySQL Database even works cross-server, letting players teleport across your proxy (Bungee or Velocity) network!  
+- This fork has been made from commit [918539072530f5064ca082b03972259976dd7d11](https://github.com/WiIIiam278/HuskHomes/commit/918539072530f5064ca082b03972259976dd7d11), branch [fabric/1.20.1](https://github.com/WiIIiam278/HuskHomes/tree/fabric/1.20.1)
+- Code specific changes related to the new features are documented in [README-Codebase.md](documentation/README-Codebase.md)
+- Developer information can be found in [README-Dev.md](documentation/README-Dev.md)
 
-## Features
-**⭐ Works cross-server** &mdash; Let players seamlessly teleport and set homes across your proxies network of servers using MySQL/MariaDB.
+For all standard features - homes, warps, teleport requests, cross-server teleportation, configuration, permissions, and more - refer to the **upstream documentation**:
 
-**⭐ Zero learning curve** &mdash; Your players already know how to use it! /sethome, /home, /tpa, /rtp—among others—are all built-in and easy-to-use.
+> **https://william278.net/docs/huskhomes**
 
-**⭐ Quick and beautiful menus** &mdash; Sometimes, simple is better. No monolithic chest GUIs—instead, robust and beautiful interactive chat menus.
+This README documents only the **ArdaCraft-specific additions** on top of the upstream codebase.
 
-**⭐ Great admin features** &mdash; Comes with all the classic admin commands—/tp and /warp—as well as robust tools for managing other players' homes.
+---
 
-**⭐ Plan & Web map plugin hooks** &mdash; Stay in touch with your community through home analytics via Plan and display homes on Dynmap or BlueMap.
+## Fork-specific features
 
-**⭐ Extensible API & open-source** &mdash; Still not enough? Extend the plugin with the HuskHomes API. Or, submit a pull request—we're open-source!
+### 1. Server Linking (master/slave warp replication)
+
+Servers can be linked in a master/slave relationship. When a player uses `/warp`, they are automatically redirected to their preferred server's copy of that warp rather than always landing on the master server.
+
+**Concept:**
+- A **master** server holds the canonical warp definition.
+- **Slave** servers are mirrors of the master; players can be sent there instead.
+- Relationships are stored in the `huskhomes_server_links` database table and managed at runtime via admin commands.
+
+**Configuring in `config.yml`** (static defaults, overridden by DB at runtime):
+```yaml
+cross_server:
+  server_linking:
+    enabled: true
+    link_map:
+      survival-1:
+        - survival-2
+```
+
+**Runtime admin commands** (see [Admin Commands](#admin-commands)):
+- `/huskhomes linkserver <master> <slave>` - add a link
+- `/huskhomes unlinkserver <master> <slave>` - remove a link
+
+---
+
+### 2. Warp Permissions
+
+Individual warps can be locked behind a custom permission node, independently of HuskHomes' built-in `permission_restrict_warps` setting. The two systems stack: a player must pass **both** checks.
+
+**Admin commands:**
+- `/huskhomes lockwarp <warp> <permission.node>` - require `permission.node` to use `<warp>`
+- `/huskhomes unlockwarp <warp>` - remove the permission restriction
+
+Restrictions are stored in the `huskhomes_warp_permissions` table.
+
+---
+
+### 3. Server Permissions
+
+All warps on a given server can be gated behind a single permission node. This check is applied **in addition to** per-warp permissions.
+
+**Admin commands:**
+- `/huskhomes lockserver <server> <permission.node>` - require `permission.node` to warp to any warp on `<server>`
+- `/huskhomes unlockserver <server>` - remove the restriction
+
+Restrictions are stored in the `huskhomes_server_permissions` table.
+
+---
+
+### 4. User Preferred Server
+
+Players (or admins on their behalf) can set a preferred server for each master server in the linking system. When the player subsequently uses `/warp`, they are redirected to their preferred server's copy of the warp automatically.
+
+**Command:**
+```
+/huskhomes setpreferredserver <master-server> <preferred-server> [player]
+```
+- Omit `[player]` to set your own preference.
+- Include `[player]` (operator only) to set it for another player.
+- `<preferred-server>` must be the master server itself or one of its linked slaves.
+
+Preferences are stored in the `huskhomes_user_preferences` table.
+
+#### Permission-based default preferred server
+
+If a player has no explicit preference stored, a default can be granted via permission node:
+
+```
+huskhomes.linkedserver.<master-server>.preferreddefault.<preferred-server>
+```
+
+Example: granting `huskhomes.linkedserver.survival-1.preferreddefault.survival-2` to a group will route those players to `survival-2` whenever they warp to a warp on `survival-1`.
+
+---
+
+### 5. Extended `/warp` syntax
+
+An optional server argument is accepted directly in the warp command:
+
+```
+/warp <name> [server]
+```
+
+When `[server]` is supplied the player is teleported to that server's copy of the warp (subject to server permission checks). This is useful for admins who need to reach a specific server copy regardless of personal preferences.
+
+---
+
+### 6. Command block / `/execute` compatibility fix
+
+Vanilla Minecraft's `/execute ... run <command>` passes the full command chain as input to Brigadier, which caused HuskHomes commands to receive the entire `/execute` string as their argument list. This fork fixes that in `FabricCommand` by scanning the input for the command name and slicing only the arguments that follow it, so commands work correctly from command blocks and `execute` chains.
+
+---
+
+## Admin commands
+
+All commands below require operator level (permission level 3) or the corresponding `huskhomes.<subcommand>` permission node.
+
+| Command | Syntax | Description |
+|---|---|---|
+| `linkserver` | `/huskhomes linkserver <master> <slave>` | Link a slave server to a master server |
+| `unlinkserver` | `/huskhomes unlinkserver <master> <slave>` | Remove a master→slave server link |
+| `lockwarp` | `/huskhomes lockwarp <warp> <permission>` | Require a permission to use a warp |
+| `unlockwarp` | `/huskhomes unlockwarp <warp>` | Remove a warp's permission requirement |
+| `lockserver` | `/huskhomes lockserver <server> <permission>` | Require a permission for all warps on a server |
+| `unlockserver` | `/huskhomes unlockserver <server>` | Remove a server's permission requirement |
+| `setpreferredserver` | `/huskhomes setpreferredserver <master> <preferred> [player]` | Set a player's preferred server for a master |
+
+---
+
+## Fork-specific permission nodes
+
+| Node | Description |
+|---|---|
+| `huskhomes.linkedserver.<master>.preferreddefault.<server>` | Permission-based default preferred server for `<master>` |
+
+All other permission nodes are unchanged from upstream - see [Managing Access](https://william278.net/docs/huskhomes/managing-access).
+
+---
 
 ## Building
-HuskHomes requires Java 17 to build. To build for all platforms, simply run the following in the root of the repository:
+
+Requires **Java 17**. Targets **Fabric 1.20.1** (Fabric Loader 0.16.10).
 
 ```bash
 ./gradlew clean build
 ```
 
+The built jar is output to `fabric/build/libs/`.
+
+---
+
 ## License
-HuskHomes is licensed under the Apache 2.0 license.
 
-- [License](https://github.com/WiIIiam278/HuskHomes/blob/master/LICENSE)
-
-## Translations
-Translations of the plugin locales are welcome to help make the plugin more accessible. Please submit a pull request with your translations as a `.yml` file.
+Licensed under the [Apache Licence 2.0](LICENSE), the same as the upstream HuskHomes project.
 
 - [Locales Directory](https://github.com/WiIIiam278/HuskHomes/tree/master/common/src/main/resources/locales)
 - [English Locales](https://github.com/WiIIiam278/HuskHomes/tree/master/common/src/main/resources/locales/en-gb.yml)
 
 ## Links
-- [Docs](https://william278.net/docs/huskhomes/) &mdash; Read the plugin documentation!
-- [Modrinth](https://modrinth.com/plugin/huskhomes) &mdash; View the plugin Modrinth page (Also: [Spigot](https://www.spigotmc.org/resources/huskhomes.83767/), [Polymart](https://polymart.org/resource/huskhomes.284/), [Hangar](https://hangar.papermc.io/William278/HuskHomes), & [CurseForge](https://www.curseforge.com/minecraft/mc-mods/huskhomes/))
-- [Issues](https://github.com/WiIIiam278/HuskHomes/issues) &mdash; File a bug report or feature request
-- [Discord](https://discord.gg/tVYhJfyDWG) &mdash; Get help, ask questions
-- [bStats](https://bstats.org/plugin/bukkit/HuskHomes/8430) &mdash; View plugin metrics (Also: [Sponge](https://bstats.org/plugin/sponge/HuskHomes/18423))
+- [Docs](https://william278.net/docs/huskhomes/) - Read the plugin documentation!
+- [Modrinth](https://modrinth.com/plugin/huskhomes) - View the plugin Modrinth page (Also: [Spigot](https://www.spigotmc.org/resources/huskhomes.83767/), [Polymart](https://polymart.org/resource/huskhomes.284/), [Hangar](https://hangar.papermc.io/William278/HuskHomes), & [CurseForge](https://www.curseforge.com/minecraft/mc-mods/huskhomes/))
+- [Issues](https://github.com/WiIIiam278/HuskHomes/issues) - File a bug report or feature request
+- [Discord](https://discord.gg/tVYhJfyDWG) - Get help, ask questions
+- [bStats](https://bstats.org/plugin/bukkit/HuskHomes/8430) - View plugin metrics (Also: [Sponge](https://bstats.org/plugin/sponge/HuskHomes/18423))
 
 ---
-&copy; [William278](https://william278.net/), 2023. Licensed under the Apache-2.0 License.
+&copy; [William278](https://william278.net/), 2023. Licensed under the Apache-2.0 Licence.

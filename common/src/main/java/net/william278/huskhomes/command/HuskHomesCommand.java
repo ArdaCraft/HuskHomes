@@ -345,7 +345,19 @@ public class HuskHomesCommand extends Command implements TabProvider {
                         .setHeaderFormat(plugin.getLocales().getRawLocale("importer_list_title").orElse(""))
                         .setItemSeparator("\n").setCommand("/huskhomes:huskhomes import list")
                         .build());
-    }    // Set preferred server for a user for a specific master server
+    }
+
+    /**
+     * Handles {@code /huskhomes setpreferredserver <master-server> <preferred-server> [player]}.
+     *
+     * <p>Stores a per-user preferred server mapping in the database. When the target player next
+     * teleports to a warp whose server is the given master (or a slave of it), they will be
+     * redirected to {@code <preferred-server>} instead. Operators may specify an optional
+     * {@code [player]} argument to set the preference on behalf of another player.
+     *
+     * @param executor the command sender
+     * @param args     {@code <master-server> <preferred-server> [player]}
+     */
     private void setPreferredServer(@NotNull CommandUser executor, @NotNull String[] args) {
         if (args.length < 2) {
             plugin.getLocales().getLocale("error_invalid_syntax",
@@ -407,7 +419,17 @@ public class HuskHomesCommand extends Command implements TabProvider {
             }        });
     }
 
-    // Lock a specific warp behind a permission
+    /**
+     * Handles {@code /huskhomes lockwarp <warp> <permission>}.
+     *
+     * <p>Stores a permission node in the database that players must hold to teleport to the named
+     * warp. The warp must already exist on this server. The restriction is additive: it applies
+     * on top of HuskHomes' built-in {@code permissionRestrictWarps} setting.
+     * Use {@code /huskhomes unlockwarp} to remove the restriction.
+     *
+     * @param executor the command sender
+     * @param args     {@code <warp> <permission>}
+     */
     private void lockWarp(@NotNull CommandUser executor, @NotNull String[] args) {
         if (args.length < 2) {
             plugin.getLocales().getLocale("error_invalid_syntax",
@@ -442,7 +464,17 @@ public class HuskHomesCommand extends Command implements TabProvider {
             }        });
     }
 
-    // Lock an entire server's warps behind a permission
+    /**
+     * Handles {@code /huskhomes lockserver <server> <permission>}.
+     *
+     * <p>Stores a permission node in the database that players must hold to teleport to
+     * <em>any</em> warp on the named server. This is a server-wide gate applied in addition to
+     * per-warp permissions — a player must satisfy both to teleport.
+     * Use {@code /huskhomes unlockserver} to remove the restriction.
+     *
+     * @param executor the command sender
+     * @param args     {@code <server> <permission>}
+     */
     private void lockServer(@NotNull CommandUser executor, @NotNull String[] args) {
         if (args.length < 2) {
             plugin.getLocales().getLocale("error_invalid_syntax",
@@ -470,7 +502,16 @@ public class HuskHomesCommand extends Command implements TabProvider {
         });
     }
 
-    // Link a slave server to a master server
+    /**
+     * Handles {@code /huskhomes linkserver <master-server> <slave-server>}.
+     *
+     * <p>Records a master→slave relationship in the database. Once linked, players whose preferred
+     * server for the master is set to the slave will be redirected there on warp use, and the slave
+     * becomes a valid explicit target for {@code /warp <name> <slave-server>}.
+     *
+     * @param executor the command sender
+     * @param args     {@code <master-server> <slave-server>}
+     */
     private void linkServer(@NotNull CommandUser executor, @NotNull String[] args) {
         if (args.length < 2) {
             plugin.getLocales().getLocale("error_invalid_syntax",
@@ -498,7 +539,16 @@ public class HuskHomesCommand extends Command implements TabProvider {
         });
     }
 
-    // Unlink a slave server from a master server
+    /**
+     * Handles {@code /huskhomes unlinkserver <master-server> <slave-server>}.
+     *
+     * <p>Removes the master→slave relationship from the database. After unlinking, the slave is no
+     * longer a valid preference target and {@code /warp <name> <slave-server>} will stop working
+     * for that warp group.
+     *
+     * @param executor the command sender
+     * @param args     {@code <master-server> <slave-server>}
+     */
     private void unlinkServer(@NotNull CommandUser executor, @NotNull String[] args) {
         if (args.length < 2) {
             plugin.getLocales().getLocale("error_invalid_syntax",
@@ -526,7 +576,16 @@ public class HuskHomesCommand extends Command implements TabProvider {
         });
     }
 
-    // Remove a permission requirement for a specific warp (unlockwarp)
+    /**
+     * Handles {@code /huskhomes unlockwarp <warp>}.
+     *
+     * <p>Removes the database-stored permission restriction for the named warp so that any player
+     * who can reach the warp's server may use it (subject to other access controls). The warp must
+     * already exist on this server.
+     *
+     * @param executor the command sender
+     * @param args     {@code <warp>}
+     */
     private void unlockWarp(@NotNull CommandUser executor, @NotNull String[] args) {
         if (args.length < 1) {
             plugin.getLocales().getLocale("error_invalid_syntax",
@@ -561,7 +620,16 @@ public class HuskHomesCommand extends Command implements TabProvider {
         });
     }
 
-    // Remove a permission requirement for a specific server (unlockserver)
+    /**
+     * Handles {@code /huskhomes unlockserver <server>}.
+     *
+     * <p>Removes the database-stored server-wide permission restriction, making all warps on
+     * that server accessible again (subject to per-warp restrictions and HuskHomes' built-in
+     * access controls).
+     *
+     * @param executor the command sender
+     * @param args     {@code <server>}
+     */
     private void unlockServer(@NotNull CommandUser executor, @NotNull String[] args) {
         if (args.length < 1) {
             plugin.getLocales().getLocale("error_invalid_syntax",

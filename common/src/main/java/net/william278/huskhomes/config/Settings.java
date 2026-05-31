@@ -306,6 +306,16 @@ public final class Settings {
         @Comment("Server linking configuration for master-slave warp replication")
         private ServerLinkingSettings serverLinking = new ServerLinkingSettings();
 
+        /**
+         * Configuration for the master/slave server linking system.
+         *
+         * <p>A <em>master</em> server is the canonical home of a set of warps.
+         * <em>Slave</em> servers are linked copies; players with a preferred server set for a master
+         * will be redirected there when using warps. The {@code linkMap} here provides config-file
+         * defaults, but the live source of truth at runtime is the
+         * {@code huskhomes_server_links} database table, which is managed via
+         * {@code /huskhomes linkserver} and {@code /huskhomes unlinkserver}.
+         */
         @Getter
         @Configuration
         @NoArgsConstructor
@@ -341,6 +351,16 @@ public final class Settings {
         @Comment("Warp permission configuration for individual warp access control")
         private WarpPermissionSettings warpPermissions = new WarpPermissionSettings();
 
+        /**
+         * Configuration for per-warp permission restrictions.
+         *
+         * <p>This is an additional permission layer on top of HuskHomes' built-in
+         * {@code permissionRestrictWarps} setting. Even when the built-in restriction is disabled,
+         * warps listed in {@code warpPermissionMap} (or locked via {@code /huskhomes lockwarp})
+         * will still require their mapped permission node. The {@code warpPermissionMap} here
+         * provides config-file defaults; the live source of truth is the
+         * {@code huskhomes_warp_permissions} database table.
+         */
         @Getter
         @Configuration
         @NoArgsConstructor
@@ -371,6 +391,15 @@ public final class Settings {
         @Comment("Server permission configuration for server-wide access control")
         private ServerPermissionSettings serverPermissions = new ServerPermissionSettings();
 
+        /**
+         * Configuration for server-wide permission restrictions.
+         *
+         * <p>Gates access to <em>all</em> warps on a named server behind a single permission node.
+         * This check is applied in addition to any per-warp permissions; a player must satisfy both
+         * to teleport. The {@code serverPermissionMap} here provides config-file defaults; the live
+         * source of truth is the {@code huskhomes_server_permissions} database table, managed via
+         * {@code /huskhomes lockserver} and {@code /huskhomes unlockserver}.
+         */
         @Getter
         @Configuration
         @NoArgsConstructor
@@ -401,6 +430,19 @@ public final class Settings {
         @Comment("User preferred server settings for duplicated warps")
         private PreferredServerSettings preferredServers = new PreferredServerSettings();
 
+        /**
+         * Configuration for per-user preferred server settings.
+         *
+         * <p><strong>Note:</strong> this class is used only for config-file storage. The live
+         * source of truth at runtime is the {@code huskhomes_user_preferences} database table,
+         * which is managed via {@code /huskhomes setpreferredserver}. Entries in
+         * {@code userPreferences} are keyed by the player's UUID string, then by master server
+         * name.
+         *
+         * <p>Permission-based defaults (used when no explicit preference is stored) use the node
+         * format {@code huskhomes.linkedserver.&lt;master&gt;.preferreddefault.&lt;server&gt;},
+         * checked in {@code WarpCommand#getPermissionBasedDefaultServer}.
+         */
         @Getter
         @Configuration
         @NoArgsConstructor
