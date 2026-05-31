@@ -120,6 +120,9 @@ bash dev/scripts/update-mods.sh
 # → Distributed HuskHomes-Fabric-4.7.jar to: ardacraft building plots lobby
 ```
 
+> `plots` and `lobby` are commented out in `docker-compose.yml` by default — their mod
+> directories are still populated so they are ready to enable on demand.
+
 Re-run this script after every rebuild or after adding/updating a shared mod.
 
 ### 3. Download LuckPerms
@@ -147,7 +150,7 @@ After this step each server directory should contain exactly two jars:
 ```
 dev/mods/ardacraft/huskhomes.jar
 dev/mods/ardacraft/LuckPerms-Fabric-5.4.102.jar
-# … same for building/, plots/, lobby/
+# … same for building/, plots/, lobby/ (plots and lobby are disabled by default)
 ```
 
 ---
@@ -161,8 +164,14 @@ Ensure the `huskhomesdb` container is running and healthy before starting Compos
 docker compose up -d
 ```
 
-Docker will start all four Fabric 1.20.1 servers. They connect to the already-running
-`huskhomesdb` container via the shared `huskhomes-net` network.
+This starts **ardacraft**, **building**, **redis** (message broker), and **velocity** (proxy).
+`plots` and `lobby` are commented out in `docker-compose.yml` and do not start by default.
+All Minecraft servers connect to the already-running `huskhomesdb` container via the
+shared `huskhomes-net` network.
+
+To enable `plots` or `lobby`, uncomment the relevant service block in `docker-compose.yml`
+and its corresponding entry in `dev/config/velocity/velocity.toml` under `[servers]`.
+Then run `docker compose up -d` again.
 
 Check the status:
 
@@ -186,14 +195,16 @@ docker compose logs ardacraft | grep -iE "mariadb|database|huskhomes"
 
 ## Port reference
 
-| Server    | Minecraft port | Remote debug port |
-|-----------|---------------|-------------------|
-| ardacraft | 25565         | 5005              |
-| building  | 25566         | 5006              |
-| plots     | 25567         | 5007              |
-| lobby     | 25568         | 5008              |
+| Service              | Port  | Notes                                      |
+|----------------------|-------|--------------------------------------------|
+| **velocity** (proxy) | 25577 | **Connect here** — not to individual servers |
+| ardacraft            | 25565 | Direct access / remote debug: 5005         |
+| building             | 25566 | Direct access / remote debug: 5006         |
+| plots *(disabled)*   | 25567 | Commented out by default / debug: 5007     |
+| lobby *(disabled)*   | 25568 | Commented out by default / debug: 5008     |
 
 All servers run with `ONLINE_MODE=false` — no Mojang authentication required.
+Add `localhost:25577` to your Minecraft client to connect through Velocity.
 
 ---
 
@@ -266,8 +277,10 @@ Select the target configuration from the **Run and Debug** panel and click the p
 ./gradlew :fabric:build              # rebuild the mod (Fabric module only)
 bash dev/scripts/update-mods.sh      # distribute updated jar to all server dirs
 podman compose restart ardacraft      # restart only the server you're testing
-# or restart all four:
-podman compose restart ardacraft building plots lobby
+# or restart all active servers:
+podman compose restart ardacraft building
+# if you have plots/lobby enabled:
+# podman compose restart ardacraft building plots lobby
 ```
 
 ---
@@ -298,11 +311,17 @@ podman exec -it huskhomesdb mariadb -uhuskhomes -pdevpassword huskhomes
 
 Once all four servers are running and have connected to the shared database, link them with the in-game admin commands.
 
-Example — link `building` and `plots` as slaves of `ardacraft`:
+Example — link `building` as a slave of `ardacraft`:
 
 ```
 /huskhomes linkserver ardacraft building
+```
+
+If `plots` or `lobby` are enabled, link them the same way:
+
+```
 /huskhomes linkserver ardacraft plots
+/huskhomes linkserver ardacraft lobby
 ```
 
 Add a warp permission restriction:

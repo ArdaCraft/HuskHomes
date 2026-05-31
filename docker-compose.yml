@@ -17,7 +17,7 @@ services:
       FABRIC_LOADER_VERSION: "0.16.10"
       MODE: creative
       FORCE_GAMEMODE: "TRUE"
-      MEMORY: 512M
+      MEMORY: 1G
       ONLINE_MODE: "false"
       JVM_OPTS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
@@ -46,7 +46,7 @@ services:
       FABRIC_LOADER_VERSION: "0.16.10"
       MODE: creative
       FORCE_GAMEMODE: "TRUE"
-      MEMORY: 512M
+      MEMORY: 1G
       ONLINE_MODE: "false"
       JVM_OPTS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006
@@ -59,62 +59,94 @@ services:
       - ./dev/config/building:/data/config:z
 
   # ---------------------------------------------------------------------------
-  # plots  — MC :25567  |  remote debug :5007
+  # plots  — MC :25567  |  remote debug :5007 Uncomment if you want to use this server
   # ---------------------------------------------------------------------------
-  plots:
-    image: itzg/minecraft-server:java21-alpine
-    restart: unless-stopped
-    stdin_open: true
-    tty: true
-    networks:
-      - huskhomes-net
-    environment:
-      EULA: "TRUE"
-      TYPE: FABRIC
-      VERSION: "1.20.1"
-      FABRIC_LOADER_VERSION: "0.16.10"
-      MODE: creative
-      FORCE_GAMEMODE: "TRUE"
-      MEMORY: 512M
-      ONLINE_MODE: "false"
-      JVM_OPTS: >-
-        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5007
-    ports:
-      - "25567:25565"
-      - "5007:5007"
-    volumes:
-      - plots_data:/data
-      - ./dev/mods/plots:/data/mods:z
-      - ./dev/config/plots:/data/config:z
+#  plots:
+#    image: itzg/minecraft-server:java21-alpine
+#    restart: unless-stopped
+#    stdin_open: true
+#    tty: true
+#    networks:
+#      - huskhomes-net
+#    environment:
+#      EULA: "TRUE"
+#      TYPE: FABRIC
+#      VERSION: "1.20.1"
+#      FABRIC_LOADER_VERSION: "0.16.10"
+#      MODE: creative
+#      FORCE_GAMEMODE: "TRUE"
+#      MEMORY: 1G
+#      ONLINE_MODE: "false"
+#      JVM_OPTS: >-
+#        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5007
+#    ports:
+#      - "25567:25565"
+#      - "5007:5007"
+#    volumes:
+#      - plots_data:/data
+#      - ./dev/mods/plots:/data/mods:z
+#      - ./dev/config/plots:/data/config:z
 
   # ---------------------------------------------------------------------------
-  # lobby  — MC :25568  |  remote debug :5008
+  # lobby  — MC :25568  |  remote debug :5008 Uncomment if you want to run the lobby server
   # ---------------------------------------------------------------------------
-  lobby:
-    image: itzg/minecraft-server:java21-alpine
+#  lobby:
+#    image: itzg/minecraft-server:java21-alpine
+#    restart: unless-stopped
+#    stdin_open: true
+#    tty: true
+#    networks:
+#      - huskhomes-net
+#    environment:
+#      EULA: "TRUE"
+#      TYPE: FABRIC
+#      VERSION: "1.20.1"
+#      FABRIC_LOADER_VERSION: "0.16.10"
+#      MODE: creative
+#      FORCE_GAMEMODE: "TRUE"
+#      MEMORY: 1G
+#      ONLINE_MODE: "false"
+#      JVM_OPTS: >-
+#        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5008
+#    ports:
+#      - "25568:25565"
+#      - "5008:5008"
+#    volumes:
+#      - lobby_data:/data
+#      - ./dev/mods/lobby:/data/mods:z
+#      - ./dev/config/lobby:/data/config:z
+
+  # ---------------------------------------------------------------------------
+  # redis  — message broker for HuskHomes cross-server messaging
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - huskhomes-net
+
+  # ---------------------------------------------------------------------------
+  # velocity  — proxy :25577  |  players connect here, not to individual servers
+  # ---------------------------------------------------------------------------
+  velocity:
+    image: itzg/mc-proxy
     restart: unless-stopped
     stdin_open: true
     tty: true
     networks:
       - huskhomes-net
     environment:
-      EULA: "TRUE"
-      TYPE: FABRIC
-      VERSION: "1.20.1"
-      FABRIC_LOADER_VERSION: "0.16.10"
-      MODE: creative
-      FORCE_GAMEMODE: "TRUE"
-      MEMORY: 512M
-      ONLINE_MODE: "false"
-      JVM_OPTS: >-
-        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5008
+      TYPE: VELOCITY
+      VELOCITY_VERSION: "3.3.0-SNAPSHOT"
     ports:
-      - "25568:25565"
-      - "5008:5008"
+      - "25577:25577"
     volumes:
-      - lobby_data:/data
-      - ./dev/mods/lobby:/data/mods:z
-      - ./dev/config/lobby:/data/config:z
+      - ./dev/config/velocity:/server:z
+    depends_on:
+      - ardacraft
+      - building
+#      - lobby
+#      - plots
 
 volumes:
   ardacraft_data:

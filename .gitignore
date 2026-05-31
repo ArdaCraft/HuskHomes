@@ -42,6 +42,7 @@ bin/
 dev/mods/*
 dev/data/
 dev/config/*
+!dev/config/**/*.yml
 
 ### VS Code ###
 .vscode/
