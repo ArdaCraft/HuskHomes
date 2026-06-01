@@ -43,6 +43,7 @@ dev/mods/*
 dev/data/
 dev/config/*
 !dev/config/**/*.yml
+!dev/config/**/*.toml
 
 ### VS Code ###
 .vscode/

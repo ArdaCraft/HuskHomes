@@ -1,7 +1,7 @@
 services:
 
   # ---------------------------------------------------------------------------
-  # ardacraft  — MC :25565  |  remote debug :5005
+  # ardacraft  — MC :25565  |  remote debug :5005  |  biome: plains
   # ---------------------------------------------------------------------------
   ardacraft:
     image: itzg/minecraft-server:java21-alpine
@@ -19,6 +19,17 @@ services:
       FORCE_GAMEMODE: "TRUE"
       MEMORY: 1G
       ONLINE_MODE: "false"
+      # --- single-biome flat world (prairie / plains) ---
+      LEVEL_TYPE: FLAT
+      GENERATOR_SETTINGS: '{"biome":"minecraft:plains","layers":[{"block":"minecraft:grass_block","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:stone","height":1}],"structures":{}}'
+      VIEW_DISTANCE: "2"
+      SIMULATION_DISTANCE: "1"
+      # --- RCON for startup commands ---
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: "devpassword"
+      RCON_CMDS_STARTUP: |
+        worldborder set 16
+        player andy-ardacraft spawn
       JVM_OPTS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     ports:
@@ -30,7 +41,7 @@ services:
       - ./dev/config/ardacraft:/data/config:z
 
   # ---------------------------------------------------------------------------
-  # building  — MC :25566  |  remote debug :5006
+  # building  — MC :25566  |  remote debug :5006  |  biome: desert
   # ---------------------------------------------------------------------------
   building:
     image: itzg/minecraft-server:java21-alpine
@@ -48,6 +59,17 @@ services:
       FORCE_GAMEMODE: "TRUE"
       MEMORY: 1G
       ONLINE_MODE: "false"
+      # --- single-biome flat world (desert) ---
+      LEVEL_TYPE: FLAT
+      GENERATOR_SETTINGS: '{"biome":"minecraft:desert","layers":[{"block":"minecraft:sand","height":1},{"block":"minecraft:sandstone","height":2},{"block":"minecraft:stone","height":1}],"structures":{}}'
+      VIEW_DISTANCE: "2"
+      SIMULATION_DISTANCE: "1"
+      # --- RCON for startup commands ---
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: "devpassword"
+      RCON_CMDS_STARTUP: |
+        worldborder set 16
+        player bob-building spawn
       JVM_OPTS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006
     ports:
@@ -59,62 +81,84 @@ services:
       - ./dev/config/building:/data/config:z
 
   # ---------------------------------------------------------------------------
-  # plots  — MC :25567  |  remote debug :5007 Uncomment if you want to use this server
+  # plots  — MC :25567  |  remote debug :5007  |  biome: mangrove swamp
   # ---------------------------------------------------------------------------
-#  plots:
-#    image: itzg/minecraft-server:java21-alpine
-#    restart: unless-stopped
-#    stdin_open: true
-#    tty: true
-#    networks:
-#      - huskhomes-net
-#    environment:
-#      EULA: "TRUE"
-#      TYPE: FABRIC
-#      VERSION: "1.20.1"
-#      FABRIC_LOADER_VERSION: "0.16.10"
-#      MODE: creative
-#      FORCE_GAMEMODE: "TRUE"
-#      MEMORY: 1G
-#      ONLINE_MODE: "false"
-#      JVM_OPTS: >-
-#        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5007
-#    ports:
-#      - "25567:25565"
-#      - "5007:5007"
-#    volumes:
-#      - plots_data:/data
-#      - ./dev/mods/plots:/data/mods:z
-#      - ./dev/config/plots:/data/config:z
+  plots:
+    image: itzg/minecraft-server:java21-alpine
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      - huskhomes-net
+    environment:
+      EULA: "TRUE"
+      TYPE: FABRIC
+      VERSION: "1.20.1"
+      FABRIC_LOADER_VERSION: "0.16.10"
+      MODE: creative
+      FORCE_GAMEMODE: "TRUE"
+      MEMORY: 1G
+      ONLINE_MODE: "false"
+      # --- single-biome flat world (mangrove swamp) ---
+      LEVEL_TYPE: FLAT
+      GENERATOR_SETTINGS: '{"biome":"minecraft:mangrove_swamp","layers":[{"block":"minecraft:mud","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:stone","height":1}],"structures":{}}'
+      VIEW_DISTANCE: "2"
+      SIMULATION_DISTANCE: "1"
+      # --- RCON for startup commands ---
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: "devpassword"
+      RCON_CMDS_STARTUP: |
+        worldborder set 16
+        player patrick-plots spawn
+      JVM_OPTS: >-
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5007
+    ports:
+      - "25567:25565"
+      - "5007:5007"
+    volumes:
+      - plots_data:/data
+      - ./dev/mods/plots:/data/mods:z
+      - ./dev/config/plots:/data/config:z
 
   # ---------------------------------------------------------------------------
-  # lobby  — MC :25568  |  remote debug :5008 Uncomment if you want to run the lobby server
+  # lobby  — MC :25568  |  remote debug :5008  |  biome: snowy plains
   # ---------------------------------------------------------------------------
-#  lobby:
-#    image: itzg/minecraft-server:java21-alpine
-#    restart: unless-stopped
-#    stdin_open: true
-#    tty: true
-#    networks:
-#      - huskhomes-net
-#    environment:
-#      EULA: "TRUE"
-#      TYPE: FABRIC
-#      VERSION: "1.20.1"
-#      FABRIC_LOADER_VERSION: "0.16.10"
-#      MODE: creative
-#      FORCE_GAMEMODE: "TRUE"
-#      MEMORY: 1G
-#      ONLINE_MODE: "false"
-#      JVM_OPTS: >-
-#        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5008
-#    ports:
-#      - "25568:25565"
-#      - "5008:5008"
-#    volumes:
-#      - lobby_data:/data
-#      - ./dev/mods/lobby:/data/mods:z
-#      - ./dev/config/lobby:/data/config:z
+  lobby:
+    image: itzg/minecraft-server:java21-alpine
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      - huskhomes-net
+    environment:
+      EULA: "TRUE"
+      TYPE: FABRIC
+      VERSION: "1.20.1"
+      FABRIC_LOADER_VERSION: "0.16.10"
+      MODE: creative
+      FORCE_GAMEMODE: "TRUE"
+      MEMORY: 1G
+      ONLINE_MODE: "false"
+      # --- single-biome flat world (snowy plains) ---
+      LEVEL_TYPE: FLAT
+      GENERATOR_SETTINGS: '{"biome":"minecraft:snowy_plains","layers":[{"block":"minecraft:snow_block","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:stone","height":1}],"structures":{}}'
+      VIEW_DISTANCE: "2"
+      SIMULATION_DISTANCE: "1"
+      # --- RCON for startup commands ---
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: "devpassword"
+      RCON_CMDS_STARTUP: |
+        worldborder set 16
+        player larry-lobby spawn
+      JVM_OPTS: >-
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5008
+    ports:
+      - "25568:25565"
+      - "5008:5008"
+    volumes:
+      - lobby_data:/data
+      - ./dev/mods/lobby:/data/mods:z
+      - ./dev/config/lobby:/data/config:z
 
   # ---------------------------------------------------------------------------
   # redis  — message broker for HuskHomes cross-server messaging
@@ -145,8 +189,8 @@ services:
     depends_on:
       - ardacraft
       - building
-#      - lobby
-#      - plots
+      - plots
+      - lobby
 
 volumes:
   ardacraft_data:

@@ -1,0 +1,57 @@
+config-version = "2.7"
+
+# Bind address — Velocity listens here; players connect to this port (25577)
+bind = "0.0.0.0:25577"
+
+motd = "&3HuskHomes Dev Proxy"
+show-max-players = 500
+
+# Offline mode — matches ONLINE_MODE=false on all backend servers
+online-mode = false
+
+# Disable IP forwarding; backend servers are also in offline mode
+player-info-forwarding-mode = "none"
+
+announce-forge = false
+kick-existing-players = false
+ping-passthrough = "DISABLED"
+enable-player-address-logging = true
+
+# ---------------------------------------------------------------------------
+# Backend servers — use Docker service names as hostnames
+# ---------------------------------------------------------------------------
+[servers]
+ardacraft-v2 = "ardacraft:25565"
+building  = "building:25565"
+lobby     = "lobby:25565"
+plots     = "plots:25565"
+
+# Server to land on when a player first connects
+try = ["ardacraft-v2"]
+
+[forced-hosts]
+# (none)
+
+# ---------------------------------------------------------------------------
+[advanced]
+compression-threshold = 256
+compression-level     = -1
+login-ratelimit       = 3000
+connection-timeout    = 5000
+read-timeout          = 30000
+haproxy-protocol      = false
+tcp-fast-open         = false
+
+# Required — allows backend servers to send BungeeCord plugin messages (e.g.
+# the "Connect" message that HuskHomes uses to transfer players cross-server)
+bungee-plugin-message-channel = true
+
+show-ping-requests                       = false
+failover-on-unexpected-server-disconnect = true
+announce-proxy-commands                  = true
+log-command-executions                   = false
+log-player-connections                   = true
+
+[query]
+enabled = false
+port    = 25577

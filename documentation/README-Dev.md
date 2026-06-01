@@ -1,12 +1,25 @@
 # Developer Environment — ArdaCraft HuskHomes Fork
 
-This document covers building the project and setting up and running the local multi-server dev environment.
+This document covers building the project and setting up and running the local **multi-server** dev environment.
+
+## Table of Contents
+
+1. [Build](#build)
+2. [Prerequisites](#prerequisites)
+3. [Database Setup](#database-setup)
+4. [Directory layout](#directory-layout)
+5. [First-time setup](#first-time-setup)
+6. [Starting the cluster](#starting-the-cluster)
+7. [Port reference](#port-reference)
+8. [Rebuild workflow](#rebuild-workflow)
+9. [Stopping and cleaning up](#stopping-and-cleaning-up) 
+
 
 ## Build
 
 Run Gradle task `./gradlew shadowJar`. The output build will be in directory `fabric/build/libs/<HuskHomes-version>.jar`.
 
-**Note** : Production ready builds needs to be run when the git tree is clean and a matching tag is found on the repo.
+**Note** : Production ready builds needs to be run when the git tree is **clean** and a **matching tag** is found on the repo.
 
 ---
 
@@ -15,9 +28,75 @@ Run Gradle task `./gradlew shadowJar`. The output build will be in directory `fa
 | Tool | Version |
 |------|---------|
 | Java | **21** (JDK 22 triggers a stricter `CompletionFailure` on `:bukkit:compileJava`) |
+ | MariaDB | Not included in the compose, separate instance for convenience. |
 | Docker + Docker Compose | Docker ≥ 24, Compose plugin v2 |
 | Gradle wrapper | bundled (`./gradlew`) |
 
+### Required mods 
+
+These mods are required for the dev environment to run. They should be downloaded manually and placed in the `mods/`
+directory and will be mounted when `dev/scripts/update-mods.sh` is run.
+
+- [LuckPerms v5.4](https://modrinth.com/plugin/luckperms/version/5.4.102)
+- [Fabric API v0.92.7+1.20.1](https://modrinth.com/mod/fabric-api/version/0.92.7+1.20.1)
+- [Fabric Carpet v1.20-1.4.112](https://modrinth.com/mod/carpet/version/1.4.112) - Simulated Players on each instance
+
+---
+
+## Database setup
+
+Huskhomes needs a database in order to run. It is advised to run a local instance on a separate container for ease of use.
+
+### Setting up a local MariaDB instance
+
+```bash
+podman run -d \
+  --name huskhomesdb \
+  --network huskhomes-net \
+  --restart unless-stopped \
+  -p 3306:3306 \
+  -e MARIADB_DATABASE=huskhomes \
+  -e MARIADB_USER=huskhomes \
+  -e MARIADB_PASSWORD=devpassword \
+  -e MARIADB_ROOT_PASSWORD=rootpassword \
+  mariadb:10.11
+```
+
+The `huskhomesdb` container uses the following credentials:
+
+| Field    | Value        |
+|----------|-------------|
+| Host     | `huskhomesdb` (Docker container name on `huskhomes-net`) |
+| Port     | `3306`      |
+| Database | `huskhomes` |
+| User     | `huskhomes` |
+| Password | `devpassword` |
+
+These values are pre-filled in all four `dev/config/<server>/huskhomes/config.yml` files.
+
+To open a MariaDB shell:
+
+```bash
+podman exec -it huskhomesdb mariadb -uhuskhomes -pdevpassword huskhomes
+```
+
+To copy a file from the host to the container `/tmp` (eg: database dumps):
+
+```bash
+podman cp ./dump.sql huskhomesdb:/tmp/dump.sql
+```
+
+Opening a bash shell on the container:
+
+```bash
+podman exec -it huskhomesdb /bin/bash
+```
+
+Importing a dump file from the container's bash shell:
+
+```bash
+mysql -u huskhomes -p huskhomes < /tmp/backup.sql 
+```
 ---
 
 ## Directory layout
@@ -86,22 +165,9 @@ docker exec huskhomesdb mariadb-admin ping -uhuskhomes -pdevpassword --wait
 > `update-mods.sh` handles `dev/mods` and `dev/config` automatically on every run.
 ### 1. Build the mod
 
-This fork targets Fabric only. Build just the `:fabric` subproject to skip the
-unused Bukkit/Paper/Sponge modules and avoid a known compilation issue
-on those platforms when using JDK 22:
-
 ```bash
 ./gradlew :fabric:build
 ```
-
-> **Note — `./gradlew build` with JDK 22**
-> Running the root `build` task with JDK 22 fails at `:bukkit:compileJava` with
-> `CompletionFailure: class file for redis.clients.jedis.util.Pool not found`.
-> This is because `common` declares Jedis as `compileOnly` (not exported to
-> dependents), so Bukkit's compiler can't complete the Jedis type hierarchy.
-> JDK 22 is stricter about this than JDK 21. The missing dependency has been
-> added to `bukkit/build.gradle`, but **using JDK 21 is still recommended** to
-> match the version specified in `gradle.properties`.
 
 > **Note — license header check**
 > The build runs `checkLicenseMain` on every `.java` file under `src/main/java`.
@@ -119,27 +185,7 @@ into each server's own directory (`dev/mods/<server>/`):
 bash dev/scripts/update-mods.sh
 # → Distributed HuskHomes-Fabric-4.7.jar to: ardacraft building plots lobby
 ```
-
-> `plots` and `lobby` are commented out in `docker-compose.yml` by default — their mod
-> directories are still populated so they are ready to enable on demand.
-
 Re-run this script after every rebuild or after adding/updating a shared mod.
-
-### 3. Download LuckPerms
-
-Download **LuckPerms-Fabric-5.4.102.jar** from Modrinth:
-
-```
-https://modrinth.com/plugin/luckperms/version/5.4.102
-```
-
-Place it in `dev/mods/` (the staging root, **not** a server subdirectory):
-
-```
-dev/mods/LuckPerms-Fabric-5.4.102.jar
-```
-
-Then run `update-mods.sh` to distribute it to all four server directories:
 
 ```bash
 bash dev/scripts/update-mods.sh
@@ -164,14 +210,24 @@ Ensure the `huskhomesdb` container is running and healthy before starting Compos
 docker compose up -d
 ```
 
-This starts **ardacraft**, **building**, **redis** (message broker), and **velocity** (proxy).
-`plots` and `lobby` are commented out in `docker-compose.yml` and do not start by default.
+This starts all four backend servers (**ardacraft**, **building**, **plots**, **lobby**),
+**redis** (message broker), and **velocity** (proxy).
 All Minecraft servers connect to the already-running `huskhomesdb` container via the
 shared `huskhomes-net` network.
 
-To enable `plots` or `lobby`, uncomment the relevant service block in `docker-compose.yml`
-and its corresponding entry in `dev/config/velocity/velocity.toml` under `[servers]`.
-Then run `docker compose up -d` again.
+Each server boots as a single-biome flat world capped to one chunk
+(`SIMULATION_DISTANCE=1`, `VIEW_DISTANCE=2`, `worldborder set 16`):
+
+| Server     | Biome            | Fake player      |
+|------------|------------------|------------------|
+| ardacraft  | Plains (prairie) | andy-ardacraft   |
+| building   | Desert           | bob-building     |
+| plots      | Mangrove swamp   | patrick-plots    |
+| lobby      | Snowy plains     | larry-lobby      |
+
+Fake players are spawned automatically via RCON on every server start using the
+Carpet mod (`/player <name> spawn`). They will vanish if the server stops and
+re-appear on the next startup — this is expected behaviour.
 
 Check the status:
 
@@ -200,143 +256,23 @@ docker compose logs ardacraft | grep -iE "mariadb|database|huskhomes"
 | **velocity** (proxy) | 25577 | **Connect here** — not to individual servers |
 | ardacraft            | 25565 | Direct access / remote debug: 5005         |
 | building             | 25566 | Direct access / remote debug: 5006         |
-| plots *(disabled)*   | 25567 | Commented out by default / debug: 5007     |
-| lobby *(disabled)*   | 25568 | Commented out by default / debug: 5008     |
+| plots                | 25567 | Direct access / remote debug: 5007         |
+| lobby                | 25568 | Direct access / remote debug: 5008         |
 
 All servers run with `ONLINE_MODE=false` — no Mojang authentication required.
 Add `localhost:25577` to your Minecraft client to connect through Velocity.
 
 ---
 
-## Remote debugging
-
-The JVM in each server is started with:
-
-```
--agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:<debug_port>
-```
-
-`suspend=n` means the server boots immediately without waiting for a debugger to attach.
-
-### IntelliJ IDEA
-
-1. **Run → Edit Configurations → + → Remote JVM Debug**
-2. Set **Host** to `localhost` and **Port** to the server's debug port (e.g. `5005` for `ardacraft`).
-3. Set **Module classpath** to the `fabric` module.
-4. Click **Debug** — IntelliJ will attach. Breakpoints in `fabric/` and `common/` source sets will fire normally.
-
-Create one run configuration per server (one per debug port).
-
-### VS Code (with Extension Pack for Java)
-
-Add an entry to `.vscode/launch.json`:
-
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "java",
-      "name": "Attach ardacraft",
-      "request": "attach",
-      "hostName": "localhost",
-      "port": 5005
-    },
-    {
-      "type": "java",
-      "name": "Attach building",
-      "request": "attach",
-      "hostName": "localhost",
-      "port": 5006
-    },
-    {
-      "type": "java",
-      "name": "Attach plots",
-      "request": "attach",
-      "hostName": "localhost",
-      "port": 5007
-    },
-    {
-      "type": "java",
-      "name": "Attach lobby",
-      "request": "attach",
-      "hostName": "localhost",
-      "port": 5008
-    }
-  ]
-}
-```
-
-Select the target configuration from the **Run and Debug** panel and click the play button.
-
----
-
-## Everyday rebuild workflow
+## Rebuild workflow
 
 ```bash
 ./gradlew :fabric:build              # rebuild the mod (Fabric module only)
 bash dev/scripts/update-mods.sh      # distribute updated jar to all server dirs
 podman compose restart ardacraft      # restart only the server you're testing
 # or restart all active servers:
-podman compose restart ardacraft building
-# if you have plots/lobby enabled:
-# podman compose restart ardacraft building plots lobby
+podman compose restart ardacraft building plots lobby
 ```
-
----
-
-## Database credentials
-
-The `huskhomesdb` container uses the following credentials:
-
-| Field    | Value        |
-|----------|-------------|
-| Host     | `huskhomesdb` (Docker container name on `huskhomes-net`) |
-| Port     | `3306`      |
-| Database | `huskhomes` |
-| User     | `huskhomes` |
-| Password | `devpassword` |
-
-These values are pre-filled in all four `dev/config/<server>/huskhomes/config.yml` files.
-
-To open a MariaDB shell:
-
-```bash
-podman exec -it huskhomesdb mariadb -uhuskhomes -pdevpassword huskhomes
-```
-
----
-
-## Server linking setup
-
-Once all four servers are running and have connected to the shared database, link them with the in-game admin commands.
-
-Example — link `building` as a slave of `ardacraft`:
-
-```
-/huskhomes linkserver ardacraft building
-```
-
-If `plots` or `lobby` are enabled, link them the same way:
-
-```
-/huskhomes linkserver ardacraft plots
-/huskhomes linkserver ardacraft lobby
-```
-
-Add a warp permission restriction:
-
-```
-/huskhomes lockwarp myWarp some.permission.node
-```
-
-Set a player's preferred server:
-
-```
-/huskhomes setpreferredserver ardacraft building PlayerName
-```
-
-See [README.md](../README.md) for the full admin command reference.
 
 ---
 
