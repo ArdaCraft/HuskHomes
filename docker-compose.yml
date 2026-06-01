@@ -21,7 +21,7 @@ services:
       ONLINE_MODE: "false"
       # --- single-biome flat world (prairie / plains) ---
       LEVEL_TYPE: FLAT
-      GENERATOR_SETTINGS: '{"biome":"minecraft:plains","layers":[{"block":"minecraft:grass_block","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:stone","height":1}],"structures":{}}'
+      GENERATOR_SETTINGS: '{"biome":"minecraft:plains","layers":[{"block":"minecraft:stone","height":40},{"block":"minecraft:grass_block","height":20}],"structures":{}}'
       VIEW_DISTANCE: "2"
       SIMULATION_DISTANCE: "1"
       # --- RCON for startup commands ---
@@ -29,7 +29,7 @@ services:
       RCON_PASSWORD: "devpassword"
       RCON_CMDS_STARTUP: |
         worldborder set 16
-        player andy-ardacraft spawn
+        player andy-ardacraft spawn at 0 60 0
       JVM_OPTS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     ports:
@@ -61,7 +61,7 @@ services:
       ONLINE_MODE: "false"
       # --- single-biome flat world (desert) ---
       LEVEL_TYPE: FLAT
-      GENERATOR_SETTINGS: '{"biome":"minecraft:desert","layers":[{"block":"minecraft:sand","height":1},{"block":"minecraft:sandstone","height":2},{"block":"minecraft:stone","height":1}],"structures":{}}'
+      GENERATOR_SETTINGS: '{"biome":"minecraft:desert","layers":[{"block":"minecraft:stone","height":40},{"block":"minecraft:sand","height":20}],"structures":{}}'
       VIEW_DISTANCE: "2"
       SIMULATION_DISTANCE: "1"
       # --- RCON for startup commands ---
@@ -69,7 +69,7 @@ services:
       RCON_PASSWORD: "devpassword"
       RCON_CMDS_STARTUP: |
         worldborder set 16
-        player bob-building spawn
+        player bob-building spawn at 0 60 0
       JVM_OPTS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006
     ports:
@@ -101,7 +101,7 @@ services:
       ONLINE_MODE: "false"
       # --- single-biome flat world (mangrove swamp) ---
       LEVEL_TYPE: FLAT
-      GENERATOR_SETTINGS: '{"biome":"minecraft:mangrove_swamp","layers":[{"block":"minecraft:mud","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:stone","height":1}],"structures":{}}'
+      GENERATOR_SETTINGS: '{"biome":"minecraft:mangrove_swamp","layers":[{"block":"minecraft:stone","height":40},{"block":"minecraft:mud","height":20}],"structures":{}}'
       VIEW_DISTANCE: "2"
       SIMULATION_DISTANCE: "1"
       # --- RCON for startup commands ---
@@ -109,7 +109,7 @@ services:
       RCON_PASSWORD: "devpassword"
       RCON_CMDS_STARTUP: |
         worldborder set 16
-        player patrick-plots spawn
+        player patrick-plots spawn at 0 60 0
       JVM_OPTS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5007
     ports:
@@ -141,7 +141,7 @@ services:
       ONLINE_MODE: "false"
       # --- single-biome flat world (snowy plains) ---
       LEVEL_TYPE: FLAT
-      GENERATOR_SETTINGS: '{"biome":"minecraft:snowy_plains","layers":[{"block":"minecraft:snow_block","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:stone","height":1}],"structures":{}}'
+      GENERATOR_SETTINGS: '{"biome":"minecraft:snowy_plains","layers":[{"block":"minecraft:stone","height":40},{"block":"minecraft:snow_block","height":20}],"structures":{}}'
       VIEW_DISTANCE: "2"
       SIMULATION_DISTANCE: "1"
       # --- RCON for startup commands ---
@@ -149,7 +149,7 @@ services:
       RCON_PASSWORD: "devpassword"
       RCON_CMDS_STARTUP: |
         worldborder set 16
-        player larry-lobby spawn
+        player larry-lobby spawn at 0 60 0
       JVM_OPTS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5008
     ports:

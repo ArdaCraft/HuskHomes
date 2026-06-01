@@ -300,3 +300,20 @@ The velocity proxy is your entrypoint to connect to the cluster. Launch a **Mine
 
 Upon connecting, you will be in the **lobby server** (as per the velocity.toml conf).
 From there you can use the `/server` command to switch between servers.
+
+## Executing commands on the servers CLI
+
+Use the syntax `podman exec -i <server> rcon-cli <command>`.
+
+Example 1 : "bob-building runs /tphere steve"
+```bash
+podman exec -i huskhomesardacraft-building-1 rcon-cli 'execute as bob-building run tphere steve'
+```
+
+Example 2 : give OP to all fake players
+```bash
+podman exec -i huskhomesardacraft-ardacraft-1 rcon-cli 'op andy-ardacraft'
+podman exec -i huskhomesardacraft-building-1 rcon-cli 'op bob-building'
+podman exec -i huskhomesardacraft-lobby-1 rcon-cli 'op larry-lobby'
+podman exec -i huskhomesardacraft-plots-1 rcon-cli 'op patrick-plots'
+```
