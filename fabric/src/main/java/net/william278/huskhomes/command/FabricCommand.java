@@ -37,9 +37,11 @@ import net.william278.huskhomes.user.FabricUser;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -58,6 +60,11 @@ public class FabricCommand {
     }
 
     public void register(@NotNull CommandDispatcher<ServerCommandSource> dispatcher) {
+        // Evict any pre-existing nodes with the same name (e.g. vanilla minecraft:tp / tp)
+        // so HuskHomes' implementation takes full priority and is not merged into the vanilla node.
+        dispatcher.getRoot().getChildren().removeIf(c ->
+                c.getName().equals(command.getName()) || c.getName().equals("minecraft:" + command.getName()));
+
         // Register brigadier command
         final Predicate<ServerCommandSource> predicate = Permissions
                 .require(command.getPermission(), command.isOperatorCommand() ? 3 : 0);
@@ -90,7 +97,7 @@ public class FabricCommand {
         return (context) -> {
             command.onExecuted(
                     resolveExecutor(context.getSource()),
-                    parseCommandArgs(context.getInput(), command.getName())
+                    parseCommandArgs(context.getInput())
             );
             return 1;
         };
@@ -101,19 +108,27 @@ public class FabricCommand {
      * When a command is run through /execute ... run [command], we need to extract
      * only the arguments relevant to our specific command.
      *
-     * @param input       the full command input string
-     * @param commandName the name of our command
+     * <p>Searches for the command's name and all its aliases in the input so that
+     * argument slicing is correct regardless of which name was used to invoke the command
+     * (e.g. {@code /tp} vs {@code /tpo}).
+     *
+     * @param input the full command input string
      * @return the parsed arguments for our command
      */
-    private String[] parseCommandArgs(String input, String commandName) {
+    private String[] parseCommandArgs(String input) {
         String[] parts = input.split(" ");
-        
-        // Find the position of our command name in the input
+
+        // Build the set of all valid invocation names (command name + all aliases)
+        final Set<String> validNames = new HashSet<>();
+        validNames.add(command.getName());
+        validNames.addAll(command.getAliases());
+
+        // Find the position of our command name (or alias) in the input
         int commandIndex = -1;
         for (int i = 0; i < parts.length; i++) {
-            if (parts[i].equals(commandName)) {
+            if (validNames.contains(parts[i])) {
                 commandIndex = i;
-                break;            
+                break;
             }
         }
 
@@ -144,7 +159,7 @@ public class FabricCommand {
             return (context, builder) -> Suggestions.empty();
         }
         return (context, builder) -> {
-            final String[] args = parseCommandArgs(context.getInput(), command.getName());
+            final String[] args = parseCommandArgs(context.getInput());
             provider.getSuggestions(resolveExecutor(context.getSource()), args).stream()
                     .map(suggestion -> {
                         final String completedArgs = String.join(" ", args);
