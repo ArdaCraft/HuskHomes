@@ -1527,6 +1527,64 @@ public class PostgreSqlDatabase extends Database {
     }
 
     @Override
+    public int renameServer(@NotNull String oldName, @NotNull String newName) {
+        try (Connection connection = getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                int updated = 0;
+                try (PreparedStatement stmt = connection.prepareStatement(formatStatementTables(
+                        "UPDATE \"%positions_table%\" SET \"server_name\" = ? WHERE \"server_name\" = ?;"))) {
+                    stmt.setString(1, newName);
+                    stmt.setString(2, oldName);
+                    updated += stmt.executeUpdate();
+                }
+                try (PreparedStatement stmt = connection.prepareStatement(formatStatementTables(
+                        "UPDATE \"%server_links_table%\" SET \"master_server\" = ? WHERE \"master_server\" = ?;"))) {
+                    stmt.setString(1, newName);
+                    stmt.setString(2, oldName);
+                    updated += stmt.executeUpdate();
+                }
+                try (PreparedStatement stmt = connection.prepareStatement(formatStatementTables(
+                        "UPDATE \"%server_links_table%\" SET \"slave_server\" = ? WHERE \"slave_server\" = ?;"))) {
+                    stmt.setString(1, newName);
+                    stmt.setString(2, oldName);
+                    updated += stmt.executeUpdate();
+                }
+                try (PreparedStatement stmt = connection.prepareStatement(formatStatementTables(
+                        "UPDATE \"%server_permissions_table%\" SET \"server_name\" = ? WHERE \"server_name\" = ?;"))) {
+                    stmt.setString(1, newName);
+                    stmt.setString(2, oldName);
+                    updated += stmt.executeUpdate();
+                }
+                try (PreparedStatement stmt = connection.prepareStatement(formatStatementTables(
+                        "UPDATE \"%user_preferences_table%\" SET \"master_server\" = ? "
+                                + "WHERE \"master_server\" = ?;"))) {
+                    stmt.setString(1, newName);
+                    stmt.setString(2, oldName);
+                    updated += stmt.executeUpdate();
+                }
+                try (PreparedStatement stmt = connection.prepareStatement(formatStatementTables(
+                        "UPDATE \"%user_preferences_table%\" SET \"preferred_server\" = ? "
+                                + "WHERE \"preferred_server\" = ?;"))) {
+                    stmt.setString(1, newName);
+                    stmt.setString(2, oldName);
+                    updated += stmt.executeUpdate();
+                }
+                connection.commit();
+                return updated;
+            } catch (SQLException e) {
+                connection.rollback();
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            plugin.log(Level.SEVERE, "Failed to rename server '" + oldName + "' to '" + newName + "'", e);
+            return 0;
+        }
+    }
+
+    @Override
     public void terminate() {
         if (dataSource != null) {
             if (!dataSource.isClosed()) {

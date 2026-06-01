@@ -58,6 +58,7 @@ public class HuskHomesCommand extends Command implements TabProvider {
         commands.put("unlockwarp", true);
         commands.put("lockserver", true);
         commands.put("unlockserver", true);
+        commands.put("renameserver", true);
         SUB_COMMANDS = Collections.unmodifiableMap(commands);
     }
 
@@ -177,6 +178,7 @@ public class HuskHomesCommand extends Command implements TabProvider {
             case "unlockwarp" -> this.unlockWarp(executor, removeFirstArg(args));
             case "lockserver" -> this.lockServer(executor, removeFirstArg(args));
             case "unlockserver" -> this.unlockServer(executor, removeFirstArg(args));
+            case "renameserver" -> this.renameServer(executor, removeFirstArg(args));
             default -> plugin.getLocales().getLocale("error_invalid_syntax", getUsage())
                     .ifPresent(executor::sendMessage);
         }
@@ -661,6 +663,54 @@ public class HuskHomesCommand extends Command implements TabProvider {
     }
 
     /**
+     * Handles {@code /huskhomes renameserver <old-name> <new-name>}.
+     *
+     * <p>Atomically updates every occurrence of {@code <old-name>} across all HuskHomes
+     * database tables ({@code position_data}, {@code server_links}, {@code server_permissions},
+     * {@code user_preferences}) to {@code <new-name>}, then rebuilds and propagates the warp
+     * cache on all connected servers.
+     *
+     * <p>Run this command after updating both the server's {@code server.yml} identity and
+     * the proxy config so that stored warps, homes, links, and user preferences resolve to
+     * the new server name.
+     *
+     * @param executor the command sender
+     * @param args     {@code <old-name> <new-name>}
+     */
+    private void renameServer(@NotNull CommandUser executor, @NotNull String[] args) {
+        if (args.length < 2) {
+            plugin.getLocales().getLocale("error_invalid_syntax",
+                            "/" + getName() + " renameserver <old-name> <new-name>")
+                    .ifPresent(executor::sendMessage);
+            return;
+        }
+
+        final String oldName = args[0];
+        final String newName = args[1];
+
+        if (oldName.equalsIgnoreCase(newName)) {
+            plugin.getLocales().getLocale("error_invalid_syntax",
+                            "/" + getName() + " renameserver <old-name> <new-name>")
+                    .ifPresent(executor::sendMessage);
+            return;
+        }
+
+        plugin.runAsync(() -> {
+            try {
+                final int updated = plugin.getDatabase().renameServer(oldName, newName);
+                plugin.getManager().warps().rebuildAndPropagateCache();
+                plugin.getLocales().getLocale("server_renamed", oldName, newName,
+                                Integer.toString(updated))
+                        .ifPresent(executor::sendMessage);
+            } catch (Exception e) {
+                plugin.log(Level.SEVERE, "Error renaming server", e);
+                plugin.getLocales().getLocale("error_generic")
+                        .ifPresent(executor::sendMessage);
+            }
+        });
+    }
+
+    /**
      * Get a list of all known server names from master-slave relationships.
      * This includes the current server, all master servers, and all slave servers.
      *
@@ -711,7 +761,8 @@ public class HuskHomesCommand extends Command implements TabProvider {
                 case "import" -> List.of("start", "list");
                 case "delete" -> List.of("player", "homes", "warps");
                 case "lockwarp", "unlockwarp" -> plugin.getManager().warps().getWarps();
-                case "lockserver", "unlockserver", "linkserver", "unlinkserver" -> getAllKnownServerNames();
+                case "lockserver", "unlockserver", "linkserver", "unlinkserver", "renameserver" ->
+                        getAllKnownServerNames();
                 case "setpreferredserver" -> getAllKnownMasterServerNames();
                 default -> null;
             };
@@ -722,7 +773,7 @@ public class HuskHomesCommand extends Command implements TabProvider {
                     }
                     yield plugin.getImporters().stream().map(Importer::getImporterName).toList();
                 }
-                case "linkserver", "unlinkserver" -> getAllKnownServerNames();
+                case "linkserver", "unlinkserver", "renameserver" -> getAllKnownServerNames();
                 case "setpreferredserver" -> {
                     if (getAllKnownMasterServerNames().contains(args[1])) {
                         List<String> servers = getAllKnownSlaveServerNames(args[1]);

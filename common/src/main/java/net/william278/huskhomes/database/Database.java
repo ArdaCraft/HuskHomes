@@ -534,6 +534,26 @@ public abstract class Database {
      */
     public abstract void removeAllServerLinks(@NotNull String masterServer);
 
+    /**
+     * Renames a server across all stored data, replacing every occurrence of {@code oldName}
+     * with {@code newName} in a single atomic transaction.
+     *
+     * <p>The following columns are updated:
+     * <ul>
+     *   <li>{@code huskhomes_position_data.server_name}</li>
+     *   <li>{@code huskhomes_server_links.master_server}</li>
+     *   <li>{@code huskhomes_server_links.slave_server}</li>
+     *   <li>{@code huskhomes_server_permissions.server_name}</li>
+     *   <li>{@code huskhomes_user_preferences.master_server}</li>
+     *   <li>{@code huskhomes_user_preferences.preferred_server}</li>
+     * </ul>
+     *
+     * @param oldName the current server name to replace
+     * @param newName the new server name to use
+     * @return the total number of database rows updated across all tables, or 0 on failure
+     */
+    public abstract int renameServer(@NotNull String oldName, @NotNull String newName);
+
     // Warp permission methods
 
     /**

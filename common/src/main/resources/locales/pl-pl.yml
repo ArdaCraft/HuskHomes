@@ -216,3 +216,4 @@ locales:
   server_linked: "&aLinked &f%1%&a to master &f%2%"
   server_unlinked: "&aUnlinked &f%1%&a from master server &f%2%"
   preferred_server_set: "&aSet your preferred server for &f%1%&a to &f%2%"
+  server_renamed: "&aRenamed server &f%1%&a \u2192 &f%2%&a (&f%3% records updated&a)"

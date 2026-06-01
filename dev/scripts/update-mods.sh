@@ -39,6 +39,6 @@ for server in "${SERVERS[@]}"; do
 done
 
 # Config dirs need world-writable so HuskHomes can write/update config files.
-chmod -R 777 "$CONFIG_DIR"
+chmod -R 777 "$CONFIG_DIR" 2>/dev/null
 
 echo "Distributed $(basename "$JAR") to: ${SERVERS[*]}"

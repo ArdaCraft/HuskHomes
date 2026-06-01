@@ -94,6 +94,18 @@ public class WarpsManager {
     }
 
     /**
+     * Reloads the local warp cache from the database and broadcasts an {@code UPDATE_CACHES}
+     * message so all other servers in the network also reload their caches.
+     *
+     * <p>Call this after a server rename to ensure all servers see the updated server names.
+     */
+    public void rebuildAndPropagateCache() {
+        warps.clear();
+        updateWarpCache();
+        plugin.getManager().propagateCacheUpdate();
+    }
+
+    /**
      * Cached warp names.
      */
     @NotNull
