@@ -13,6 +13,7 @@ This document covers building the project and setting up and running the local *
 7. [Port reference](#port-reference)
 8. [Rebuild workflow](#rebuild-workflow)
 9. [Stopping and cleaning up](#stopping-and-cleaning-up) 
+10. [Connecting to the cluster](#connecting-to-the-cluster)
 
 
 ## Build
@@ -289,3 +290,13 @@ Stop and **delete all data volumes** (worlds, logs, DB):
 ```bash
 docker compose down -v
 ```
+
+## Connecting to the cluster
+
+The velocity proxy is your entrypoint to connect to the cluster. Launch a **Minecraft client** go to multiplayer and add
+ the following server: 
+- Server name: `HuskHomes Ardacraft Dev`
+- Server address: `localhost:25577`
+
+Upon connecting, you will be in the **lobby server** (as per the velocity.toml conf).
+From there you can use the `/server` command to switch between servers.
